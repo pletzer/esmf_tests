@@ -113,9 +113,9 @@ program esmf_2d_dist_grid_example
   ! Get coordinate pointers
   !-----------------------------------------------------------------
   call ESMF_GridGetCoord(grid, coordDim=1, staggerloc=ESMF_STAGGERLOC_CENTER, &
-                         localDE=0, farrayPtr=lon2d, rc=rc)
+                         farrayPtr=lon2d)
   call ESMF_GridGetCoord(grid, coordDim=2, staggerloc=ESMF_STAGGERLOC_CENTER, &
-                         localDE=0, farrayPtr=lat2d, rc=rc)
+                         farrayPtr=lat2d)
 
   !-----------------------------------------------------------------
   ! Fill local coordinates
@@ -130,7 +130,8 @@ program esmf_2d_dist_grid_example
   !-----------------------------------------------------------------
   ! Print ownership
   !-----------------------------------------------------------------
-  write(*,'(A,I3,A,4I5)') "PET ", pet, " owns i=[", iStart(1), iEnd(1), "] j=[", iStart(2), iEnd(2), "]"
+  !write(*,'(A,I3,A,2I5,A,I25,A)') "PET ", pet, " owns i=[", iStart(1), iEnd(1), "] j=[", iStart(2), iEnd(2), "]"
+  print*, 'PET: ', pet, ' iStart = ', iStart(1:2), ' iEnd = ', iEnd(1:2)
 
   !-----------------------------------------------------------------
   ! Finalize
