@@ -1,4 +1,7 @@
 program coupled_driver
+  ! Driver orchestrates the execution of A and B components
+  ! and is responsible for transferring data between A and B
+  ! at the start and the end of each step
   use mpi
   use component_mod
   implicit none
@@ -57,13 +60,17 @@ program coupled_driver
   if (coupler_comm /= MPI_COMM_NULL) then
     call MPI_Comm_rank(coupler_comm, coupler_rank, ierr)
 
+    ! Allocate buffers to hold the A/B data
     allocate(A2B_buf(n), B2A_buf(n))
     A2B_buf = -100.0_dp
     B2A_buf = -200.0_dp
 
+    ! Create MPI windows for the A/B fields
     call MPI_Win_create(A2B_buf, int(n*8, kind=MPI_ADDRESS_KIND), 8, MPI_INFO_NULL, coupler_comm, A2B_win, ierr)
     call MPI_Win_create(B2A_buf, int(n*8, kind=MPI_ADDRESS_KIND), 8, MPI_INFO_NULL, coupler_comm, B2A_win, ierr)
   else
+    ! MPI_Win_create is collective. Need to set the windows to null for the ranks that don't contribute to 
+    ! data exchange
     A2B_win = MPI_WIN_NULL
     B2A_win = MPI_WIN_NULL
   end if
