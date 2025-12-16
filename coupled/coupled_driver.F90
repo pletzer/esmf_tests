@@ -1,7 +1,7 @@
 program coupled_driver
   ! Driver orchestrates the execution of A and B components
   ! and is responsible for transferring data between A and B
-  ! at the start and the end of each step
+  ! at the start (A -> B) and the end (B -> A) of each step.
   use mpi
   use component_mod
   implicit none
@@ -80,11 +80,6 @@ program coupled_driver
   !----------------------------------------
   do step = 1, 3
 
-    !==============================
-    ! Component A step
-    !==============================
-    if (isA) call comp_step(compA, step, "Component A")
-
     ! A pushes to B
     if (isA .and. compA%comp_rank == 0) then
       call MPI_Win_lock(MPI_LOCK_SHARED, 1, 0, A2B_win, ierr)
@@ -106,6 +101,11 @@ program coupled_driver
     if (isB) then
       call MPI_Bcast(compB%import_data, n, MPI_DOUBLE_PRECISION, 0, comp_comm, ierr)
     end if
+
+    !==============================
+    ! Component A step
+    !==============================
+    if (isA) call comp_step(compA, step, "Component A")
 
     !==============================
     ! Component B step
