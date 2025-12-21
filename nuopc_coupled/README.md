@@ -129,6 +129,12 @@ call NUOPC_CompAttributeSet(connector, name="RemapMethod", value="CONSERVE", rc=
 ```
 You can switch between "BILINEAR" or "CONSERVE" depending on whether you want smooth interpolation or conservative fluxes.
 
+The same connector can handle multiple fields. Each field will be regridded according to the same RemapMethod.
+If you need different interpolation methods for different fields, you would either:
+ * Create separate connectors per method, or
+ * Use advanced regridding inside the connector’s Regrid object, which can handle per-field weights.
+
+
 ### How it Works at Runtime
  1. During Realize, the source and destination fields are created.
  2. The connector internally builds an ESMF_Regrid object using:
