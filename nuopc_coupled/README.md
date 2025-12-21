@@ -76,6 +76,74 @@ This example demonstrates a simple two-component Earth System Model (ESM) applic
 
 ---
 
+## Accessing Imported Fields
+
+To access an imported field within a component (e.g., ATM):
+
+```fortran
+! Local variables
+type(ESMF_State) :: importState
+type(ESMF_Field) :: sstField
+integer :: rc
+
+! Query the import state
+call NUOPC_ModelGet(model, importState=importState, rc=rc)
+
+! Retrieve the imported field by name
+call ESMF_StateGet(importState, field=sstField, itemName="sst", rc=rc)
+
+! Access the data array
+call ESMF_FieldGet(sstField, farrayPtr=dataPtr, rc=rc)
+! dataPtr now points to the Fortran array of field values
+```
+
+itemName corresponds to the name given in Advertise.
+The retrieved pointer (dataPtr) can then be used for calculations or updates in your component.
+The connector automatically handles interpolation/remapping between source and local grids.
+
+---
+
+## Field Remapping (Regridding)
+
+Remapping occurs when fields are transferred between components with different grids. In this example, the connectors handle this automatically.
+
+### Remap Methods
+
+ * CONSERVE: Conservative remapping. Preserves integrals (e.g., total mass/energy). Best for fluxes.
+ * BILINEAR: Bilinear interpolation. Smooth but may not conserve fluxes.
+ * PATCH: Higher-order patch interpolation.
+ * NEAREST_STOD: Nearest-neighbor interpolation from source to destination.
+
+### Setting the Remap Method in a Connector
+
+```fortran
+type(ESMF_CplComp) :: connector
+integer :: rc
+
+! Add connector ATM->OCN
+call NUOPC_DriverAddComp(driver, srcCompLabel="ATM", dstCompLabel="OCN", &
+    compSetServicesRoutine=cplSS, comp=connector, rc=rc)
+
+! Set the remap method
+call NUOPC_CompAttributeSet(connector, name="RemapMethod", value="CONSERVE", rc=rc)
+```
+You can switch between "BILINEAR" or "CONSERVE" depending on whether you want smooth interpolation or conservative fluxes.
+
+### How it Works at Runtime
+ 1. During Realize, the source and destination fields are created.
+ 2. The connector internally builds an ESMF_Regrid object using:
+   * Source grid
+   * Destination grid
+   * Remap method
+ 3. At each time step, ESMF_Regrid is applied automatically, and the import field is updated.
+
+### Advanced Options
+
+ * Masking: skip land or ocean points.
+ * Remap weights file: precompute weights for static grids for performance.
+ * Higher-order conservative: RemapOrder=2 or higher.
+
+
 ## Notes
 
 - All components are derived from NUOPC base classes (`NUOPC_Model`, `NUOPC_Driver`).
