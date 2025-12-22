@@ -313,8 +313,23 @@ module ATM
 
     ! checking the imported fields
     call ESMF_StateGet(importState, itemName="sst", field=field, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+          line=__LINE__, &
+          file=__FILE__)) &
+          return  ! bail out
+
     call ESMF_FieldGet(field, farrayPtr=dataPtr, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+          line=__LINE__, &
+          file=__FILE__)) &
+          return  ! bail out
+
+
     call ESMF_FieldGet(field, grid=grid, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+          line=__LINE__, &
+          file=__FILE__)) &
+          return  ! bail out
 
     ! ! get the grid coordinates
     ! call ESMF_GridGetCoord(grid, coordDim=1, localDE=0, &
