@@ -137,9 +137,30 @@ module ATM
                                                                                                                                                                                                               
     rc = ESMF_SUCCESS 
     ! read the namelist 
-    open(newunit=unit_num, file='2comp_time_example.nml', status='old', iostat=rc)     
+    open(newunit=unit_num, file='2comp_time_example.nml', status='old', iostat=rc)
+    if (rc /= 0) then 
+      print*,'cannot open 2comp_time_example.nml'
+      return
+    endif
+
     read(unit_num, nml=domain, iostat=rc) 
+    if (rc /= 0) then 
+      print*,'cannot read domain namelist section'
+      return
+    endif
+
+    read(unit_num, nml=atm, iostat=rc)
+    if (rc /= 0) then 
+      print*,'cannot read atm namelist section'
+      return
+    endif
+
     read(unit_num, nml=ocn, iostat=rc)
+    if (rc /= 0) then 
+      print*,'cannot read ocn namelist section'
+      return
+    endif
+
     close(unit_num)
 
     ! query for importState and exportState
@@ -154,7 +175,8 @@ module ATM
     gridIn = ESMF_GridCreateNoPeriDimUfrm(maxIndex=maxIndexOcn, &
       minCornerCoord=minCornerCoord, &
       maxCornerCoord=maxCornerCoord, &
-      coordSys=ESMF_COORDSYS_CART, staggerLocList=(/ESMF_STAGGERLOC_CENTER/), &
+      coordSys=ESMF_COORDSYS_CART, &
+      staggerLocList=(/ESMF_STAGGERLOC_CORNER, ESMF_STAGGERLOC_CENTER/), &
       rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
@@ -164,7 +186,8 @@ module ATM
     gridOut = ESMF_GridCreateNoPeriDimUfrm(maxIndex=maxIndexAtm, &
       minCornerCoord=minCornerCoord, &                                                                                                                                                                        
       maxCornerCoord=maxCornerCoord, &                                                                                                                                                                        
-      coordSys=ESMF_COORDSYS_CART, staggerLocList=(/ESMF_STAGGERLOC_CENTER/), &                                                                                                                               
+      coordSys=ESMF_COORDSYS_CART, &
+      staggerLocList=(/ESMF_STAGGERLOC_CORNER, ESMF_STAGGERLOC_CENTER/), &                                                                                                                               
       rc=rc)                                                                                                                                                                                                  
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &                                                                                                                                          
       line=__LINE__, &                                                                                                                                                                                        
@@ -261,9 +284,11 @@ module ATM
 
     type(ESMF_Field) :: field
     type(ESMF_Grid) :: grid
-    real(8), pointer :: xmidPtr(:, :), ymidPtr(:, :), dataPtr(:, :)
+    real(8), pointer :: xPtr(:, :), yPtr(:, :), dataPtr(:, :)
     real(8) :: x, y, error
     integer :: cLBound(2), cUBound(2), i, j
+    logical :: isConnected
+    integer :: localDECount, lDE
 
 #define NUOPC_TRACE__OFF
 #ifdef NUOPC_TRACE
@@ -311,6 +336,14 @@ module ATM
       file=__FILE__)) &
       return  ! bail out
 
+    ! checking if the imported field is connected
+    isConnected = NUOPC_IsConnected(importState, fieldName="sst", rc=rc)
+    if (.not. isConnected) then
+      rc = ESMF_SUCCESS
+      print*,'ERROR import state sst is not connected'
+      return
+    endif
+
     ! checking the imported fields
     call ESMF_StateGet(importState, itemName="sst", field=field, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
@@ -331,16 +364,29 @@ module ATM
           file=__FILE__)) &
           return  ! bail out
 
-    ! ! get the grid coordinates
+    ! ! get the grid coordinates. THIS CRASHES!
+    ! xPtr => null()
     ! call ESMF_GridGetCoord(grid, coordDim=1, localDE=0, &
-    !                       staggerloc=ESMF_STAGGERLOC_CENTER, farrayPtr=xmidPtr, &
+    !                       staggerloc=ESMF_STAGGERLOC_CORNER, farrayPtr=xPtr, &
     !                       computationalLBound=cLBound, computationalUBound=cUBound, &
     !                       rc=rc)
+    ! if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+    !       line=__LINE__, &
+    !       file=__FILE__)) &
+    !       return  ! bail out
+
+    ! yPtr => null()
     ! call ESMF_GridGetCoord(grid, coordDim=2, localDE=0, &
-    !                       staggerloc=ESMF_STAGGERLOC_CENTER, farrayPtr=ymidPtr, &
+    !                       staggerloc=ESMF_STAGGERLOC_CORNER, farrayPtr=yPtr, &
     !                       computationalLBound=cLBound, computationalUBound=cUBound, &
     !                       rc=rc)
-    ! ! check sst
+    ! if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+    !       line=__LINE__, &
+    !       file=__FILE__)) &
+    !       return  ! bail out
+
+                
+    ! check sst
     ! error = 0_8
     ! do j = cLBound(2), cUBound(2)
     !   do i = cLBound(1), cUBound(1)
