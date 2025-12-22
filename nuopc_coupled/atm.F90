@@ -171,6 +171,8 @@ module ATM
       file=__FILE__)) &
       return  ! bail out
 
+    print*,'ATM: maxIndexOcn = ', maxIndexOcn, ' maxIndexAtm = ', maxIndexAtm
+
     ! create a Grid object for Fields
     gridIn = ESMF_GridCreateNoPeriDimUfrm(maxIndex=maxIndexOcn, &
       minCornerCoord=minCornerCoord, &
@@ -284,7 +286,7 @@ module ATM
 
     type(ESMF_Field) :: field
     type(ESMF_Grid) :: grid
-    real(8), pointer :: xPtr(:, :), yPtr(:, :), dataPtr(:, :)
+    real(8), pointer :: xPtr(:), yPtr(:), dataPtr(:, :)
     real(8) :: x, y, error
     integer :: cLBound(2), cUBound(2), i, j
     logical :: isConnected
@@ -364,16 +366,16 @@ module ATM
           file=__FILE__)) &
           return  ! bail out
 
-    ! ! get the grid coordinates. THIS CRASHES!
-    ! xPtr => null()
-    ! call ESMF_GridGetCoord(grid, coordDim=1, localDE=0, &
-    !                       staggerloc=ESMF_STAGGERLOC_CORNER, farrayPtr=xPtr, &
-    !                       computationalLBound=cLBound, computationalUBound=cUBound, &
-    !                       rc=rc)
-    ! if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-    !       line=__LINE__, &
-    !       file=__FILE__)) &
-    !       return  ! bail out
+    ! get the grid coordinates. THIS CRASHES!
+    xPtr => null()
+    call ESMF_GridGetCoord(grid, coordDim=1, localDE=0, &
+                          staggerloc=ESMF_STAGGERLOC_CORNER, farrayPtr=xPtr, &
+                          computationalLBound=cLBound, computationalUBound=cUBound, &
+                          rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+          line=__LINE__, &
+          file=__FILE__)) &
+          return  ! bail out
 
     ! yPtr => null()
     ! call ESMF_GridGetCoord(grid, coordDim=2, localDE=0, &
