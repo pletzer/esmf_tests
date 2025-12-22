@@ -272,6 +272,12 @@ module OCN
     type(ESMF_TimeInterval)     :: timeStep
     character(len=160)          :: msgString
 
+    type(ESMF_Field) :: field
+    type(ESMF_Grid) :: grid
+    real(8), pointer :: dataPtr(:, :), xmidPtr(:, :), ymidPtr(:, :)
+    real(8) x, y
+    integer :: cLBound(2), cUBound(2), i, j
+
 #define NUOPC_TRACE__OFF
 #ifdef NUOPC_TRACE
     call ESMF_TraceRegionEnter("OCN:Advance")
@@ -286,6 +292,29 @@ module OCN
       line=__LINE__, &
       file=__FILE__)) &
       return  ! bail out
+
+    call ESMF_StateGet(exportState, itemName="sst", field=field, rc=rc)
+    call ESMF_FieldGet(field, farrayPtr=dataPtr, rc=rc)
+    call ESMF_FieldGet(field, grid=grid, rc=rc)
+
+    ! get the grid coordinates
+    call ESMF_GridGetCoord(grid, coordDim=1, localDE=0, &
+                          staggerloc=ESMF_STAGGERLOC_CENTER, farrayPtr=xmidPtr, &
+                          computationalLBound=cLBound, computationalUBound=cUBound, &
+                          rc=rc)
+    call ESMF_GridGetCoord(grid, coordDim=2, localDE=0, &
+                          staggerloc=ESMF_STAGGERLOC_CENTER, farrayPtr=ymidPtr, &
+                          computationalLBound=cLBound, computationalUBound=cUBound, &
+                          rc=rc)
+    ! set the field
+    do j = cLBound(2), cUBound(2)
+      do i = cLBound(1), cUBound(1)
+        x = xmidPtr(i, j)
+        y = ymidPtr(i, j)
+        dataPtr(i, j) = x*(y + 2*x)
+      enddo
+    enddo
+
 
     ! HERE THE MODEL ADVANCES: currTime -> currTime + timeStep
 
