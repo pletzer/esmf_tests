@@ -288,7 +288,7 @@ module ATM
     type(ESMF_Grid) :: grid
     real(8), pointer :: xPtr(:), yPtr(:), dataPtr(:, :)
     real(8) :: x, y, error
-    integer :: cLBound(2), cUBound(2), i, j
+    integer :: xLBound(1), xUBound(1), yLBound(1), yUBound(1), i, j
     logical :: isConnected
     integer :: localDECount, lDE
 
@@ -368,36 +368,47 @@ module ATM
 
     ! get the grid coordinates. THIS CRASHES!
     xPtr => null()
+    xLBound = 0
+    xUBound = 0
     call ESMF_GridGetCoord(grid, coordDim=1, localDE=0, &
-                          staggerloc=ESMF_STAGGERLOC_CORNER, farrayPtr=xPtr, &
-                          computationalLBound=cLBound, computationalUBound=cUBound, &
+                          staggerloc=ESMF_STAGGERLOC_CENTER, farrayPtr=xPtr, &
+                          computationalLBound=xLBound, &
+                          computationalUBound=xUBound, &
                           rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
           line=__LINE__, &
           file=__FILE__)) &
           return  ! bail out
 
-    ! yPtr => null()
-    ! call ESMF_GridGetCoord(grid, coordDim=2, localDE=0, &
-    !                       staggerloc=ESMF_STAGGERLOC_CORNER, farrayPtr=yPtr, &
-    !                       computationalLBound=cLBound, computationalUBound=cUBound, &
-    !                       rc=rc)
-    ! if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-    !       line=__LINE__, &
-    !       file=__FILE__)) &
-    !       return  ! bail out
+    print *,'x: xLBound = ', xLBound, ' xUBound = ', xUBound, ' xPtr = ', xPtr
+
+    yPtr => null()
+    yLBound = 0
+    yUBound = 0
+    call ESMF_GridGetCoord(grid, coordDim=2, localDE=0, &
+                          staggerloc=ESMF_STAGGERLOC_CENTER, farrayPtr=yPtr, &
+                          computationalLBound=yLBound, &
+                          computationalUBound=yUBound, &
+                          rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+          line=__LINE__, &
+          file=__FILE__)) &
+          return  ! bail out
+
+    print *,'y: yLBound = ', yLBound, ' yUBound = ', yUBound, ' yPtr = ', yPtr
 
                 
     ! check sst
-    ! error = 0_8
-    ! do j = cLBound(2), cUBound(2)
-    !   do i = cLBound(1), cUBound(1)
-    !     x = xmidPtr(i, j)
-    !     y = ymidPtr(i, j)
-    !     error = error + abs(dataPtr(i,j) - x*(y + 2*x))
-    !   enddo
-    ! enddo
-    ! print *,'error = ', error
+    error = 0_8
+    do j = yLBound(1), yUBound(1)
+      y = yPtr(j)
+      do i = xLBound(1), xUBound(1)
+        x = xPtr(i)
+        error = error + abs(dataPtr(i,j) - x*(y + 2*x))
+        print *,'i=', i, 'j=', j, ' x=', x, ' y=', y, ' dataPtr=', dataPtr(i, j)
+      enddo
+    enddo
+    print *,'error = ', error
 
 
 
