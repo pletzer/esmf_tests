@@ -259,6 +259,12 @@ module ATM
     type(ESMF_State)            :: importState, exportState
     character(len=160)          :: msgString
 
+    type(ESMF_Field) :: field
+    type(ESMF_Grid) :: grid
+    real(8), pointer :: xmidPtr(:, :), ymidPtr(:, :), dataPtr(:, :)
+    real(8) :: x, y, error
+    integer :: cLBound(2), cUBound(2), i, j
+
 #define NUOPC_TRACE__OFF
 #ifdef NUOPC_TRACE
     call ESMF_TraceRegionEnter("ATM:Advance")
@@ -304,6 +310,33 @@ module ATM
       line=__LINE__, &
       file=__FILE__)) &
       return  ! bail out
+
+    ! checking the imported fields
+    call ESMF_StateGet(importState, itemName="sst", field=field, rc=rc)
+    call ESMF_FieldGet(field, farrayPtr=dataPtr, rc=rc)
+    call ESMF_FieldGet(field, grid=grid, rc=rc)
+
+    ! ! get the grid coordinates
+    ! call ESMF_GridGetCoord(grid, coordDim=1, localDE=0, &
+    !                       staggerloc=ESMF_STAGGERLOC_CENTER, farrayPtr=xmidPtr, &
+    !                       computationalLBound=cLBound, computationalUBound=cUBound, &
+    !                       rc=rc)
+    ! call ESMF_GridGetCoord(grid, coordDim=2, localDE=0, &
+    !                       staggerloc=ESMF_STAGGERLOC_CENTER, farrayPtr=ymidPtr, &
+    !                       computationalLBound=cLBound, computationalUBound=cUBound, &
+    !                       rc=rc)
+    ! ! check sst
+    ! error = 0_8
+    ! do j = cLBound(2), cUBound(2)
+    !   do i = cLBound(1), cUBound(1)
+    !     x = xmidPtr(i, j)
+    !     y = ymidPtr(i, j)
+    !     error = error + abs(dataPtr(i,j) - x*(y + 2*x))
+    !   enddo
+    ! enddo
+    ! print *,'error = ', error
+
+
 
 #ifdef NUOPC_TRACE
     call ESMF_TraceRegionExit("ATM:Advance")
