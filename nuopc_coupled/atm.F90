@@ -403,6 +403,7 @@ module ATM
       enddo
     enddo
     print *,'ATM: sst regridding error = ', error
+    if (error > 1.e-3) print *, dataPtr
 
 
 

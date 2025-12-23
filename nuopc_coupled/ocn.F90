@@ -26,6 +26,8 @@ module OCN
 
   public SetServices
 
+  character(len=*), parameter :: label_Initialize = 'Initialize'
+
   !-----------------------------------------------------------------------------
   contains
   !-----------------------------------------------------------------------------
@@ -56,6 +58,15 @@ module OCN
       line=__LINE__, &
       file=__FILE__)) &
       return  ! bail out
+
+    ! Specialization for the Initialize phase
+    call NUOPC_CompSpecialize(model, specLabel=label_Initialize, &
+      specRoutine=Initialize, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+
     call NUOPC_CompSpecialize(model, specLabel=label_SetClock, &
       specRoutine=SetClock, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
@@ -72,6 +83,73 @@ module OCN
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+  subroutine Initialize(model, rc)
+    type(ESMF_GridComp)  :: model
+    integer, intent(out) :: rc
+
+    ! local variables
+    type(ESMF_State)        :: exportState
+    type(ESMF_Field)        :: sstField
+    real(8), pointer        :: sstData(:,:), xPtr(:), yPtr(:)
+    type(ESMF_Grid) :: grid
+    integer                 :: i, j, localElm(2), xLBound(1), xUBound(1), yLBound(1), yUBound(1)
+    real(8) :: x, y
+    
+    rc = ESMF_SUCCESS
+
+    call NUOPC_ModelGet(model, exportState=exportState, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return
+
+    ! get the field
+    call ESMF_StateGet(exportState, itemName="sst", field=sstField, rc=rc)
+
+    ! get the array pointer 
+    call ESMF_FieldGet(sstField, farrayPtr=sstData, rc=rc)
+
+    ! get the grid
+    call ESMF_FieldGet(sstField, grid=grid, rc=rc)
+
+    ! get the x coordinates
+    call ESMF_GridGetCoord(grid, coordDim=1, localDE=0, &
+                          staggerloc=ESMF_STAGGERLOC_CENTER, farrayPtr=xPtr, &
+                          computationalLBound=xLBound, computationalUBound=xUBound, &
+                          rc=rc)
+
+    ! get the y coordinates
+    call ESMF_GridGetCoord(grid, coordDim=2, localDE=0, &
+                          staggerloc=ESMF_STAGGERLOC_CENTER, farrayPtr=yPtr, &
+                          computationalLBound=yLBound, computationalUBound=yUBound, &
+                          rc=rc)
+    ! set the field
+    do j = yLBound(1), yUBound(1)
+      y = yPtr(j)
+      do i = xLBound(1), xUBound(1)
+        x = xPtr(i)
+        sstData(i, j) = x*(y + 2*x)
+      enddo
+    enddo
+
+
+    ! 4. Initialize the data
+    ! Note: ESMF handles decomposition across processors. This loop iterates only
+    ! over the local portion of the field on the current processor.
+    localElm = shape(sstData)
+    do j = 1, localElm(2)
+      do i = 1, localElm(1)
+        ! Set a uniform initial temperature (e.g., 20 degrees Celsius)
+        sstData(i, j) = 20.0_8
+      end do
+    end do
+    
+    ! Alternative: Read initial conditions from a file here if needed.
+
+  end subroutine
+
+!----------------------------------------------------------------------------
 
   subroutine Advertise(model, rc)
     type(ESMF_GridComp)  :: model
