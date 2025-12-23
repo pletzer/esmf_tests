@@ -380,8 +380,6 @@ module ATM
           file=__FILE__)) &
           return  ! bail out
 
-    print *,'x: xLBound = ', xLBound, ' xUBound = ', xUBound, ' xPtr = ', xPtr
-
     yPtr => null()
     yLBound = 0
     yUBound = 0
@@ -395,9 +393,6 @@ module ATM
           file=__FILE__)) &
           return  ! bail out
 
-    print *,'y: yLBound = ', yLBound, ' yUBound = ', yUBound, ' yPtr = ', yPtr
-
-                
     ! check sst
     error = 0_8
     do j = yLBound(1), yUBound(1)
@@ -405,10 +400,9 @@ module ATM
       do i = xLBound(1), xUBound(1)
         x = xPtr(i)
         error = error + abs(dataPtr(i,j) - x*(y + 2*x))
-        print *,'i=', i, 'j=', j, ' x=', x, ' y=', y, ' dataPtr=', dataPtr(i, j)
       enddo
     enddo
-    print *,'error = ', error
+    print *,'ATM: sst regridding error = ', error
 
 
 
@@ -416,7 +410,7 @@ module ATM
     call ESMF_TraceRegionExit("ATM:Advance")
 #endif
 
-  end subroutine
+  end subroutine Advance
 
   !-----------------------------------------------------------------------------
 

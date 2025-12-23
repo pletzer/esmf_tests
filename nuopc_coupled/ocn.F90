@@ -274,9 +274,9 @@ module OCN
 
     type(ESMF_Field) :: field
     type(ESMF_Grid) :: grid
-    real(8), pointer :: dataPtr(:, :), xmidPtr(:, :), ymidPtr(:, :)
+    real(8), pointer :: dataPtr(:, :), xPtr(:), yPtr(:)
     real(8) x, y
-    integer :: cLBound(2), cUBound(2), i, j
+    integer :: xLBound(1), xUBound(1), yLBound(1), yUBound(1), i, j
 
 #define NUOPC_TRACE__OFF
 #ifdef NUOPC_TRACE
@@ -299,22 +299,21 @@ module OCN
 
     ! get the grid coordinates
     call ESMF_GridGetCoord(grid, coordDim=1, localDE=0, &
-                          staggerloc=ESMF_STAGGERLOC_CENTER, farrayPtr=xmidPtr, &
-                          computationalLBound=cLBound, computationalUBound=cUBound, &
+                          staggerloc=ESMF_STAGGERLOC_CENTER, farrayPtr=xPtr, &
+                          computationalLBound=xLBound, computationalUBound=xUBound, &
                           rc=rc)
     call ESMF_GridGetCoord(grid, coordDim=2, localDE=0, &
-                          staggerloc=ESMF_STAGGERLOC_CENTER, farrayPtr=ymidPtr, &
-                          computationalLBound=cLBound, computationalUBound=cUBound, &
+                          staggerloc=ESMF_STAGGERLOC_CENTER, farrayPtr=yPtr, &
+                          computationalLBound=yLBound, computationalUBound=yUBound, &
                           rc=rc)
     ! set the field
-    do j = cLBound(2), cUBound(2)
-      do i = cLBound(1), cUBound(1)
-        x = xmidPtr(i, j)
-        y = ymidPtr(i, j)
+    do j = yLBound(1), yUBound(1)
+      y = yPtr(j)
+      do i = xLBound(1), xUBound(1)
+        x = xPtr(i)
         dataPtr(i, j) = x*(y + 2*x)
       enddo
     enddo
-
 
     ! HERE THE MODEL ADVANCES: currTime -> currTime + timeStep
 

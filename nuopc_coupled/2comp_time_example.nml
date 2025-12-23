@@ -1,6 +1,6 @@
 &domain                                                                                                                                                                                                                    
-  minCornerCoord = 10., 20.,                                                                                                                                                                                               
-  maxCornerCoord = 100., 200.,                                                                                                                                                                                             
+  minCornerCoord = 0., 0.,                                                                                                                                                                                               
+  maxCornerCoord = 1., 2.,                                                                                                                                                                                             
 /                                                                                                                                                                                                                          
 &atm                                                                                                                                                                                                                       
   maxIndexAtm = 12, 10                                                                                                                                                                                                    
