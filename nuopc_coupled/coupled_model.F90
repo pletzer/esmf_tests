@@ -21,8 +21,8 @@ module ATM
   subroutine Advertise(gcomp, rc)
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
-    call NUOPC_AdvertiseField(gcomp, fieldName="sst", stateIntent=ESMF_STATEINTENT_IMPORT, rc=rc)
-    call NUOPC_AdvertiseField(gcomp, fieldName="pmsl", stateIntent=ESMF_STATEINTENT_EXPORT, rc=rc)
+    call NUOPC_AdvertiseField(gcomp, standardName="", stateIntent=ESMF_STATEINTENT_IMPORT, rc=rc)
+    call NUOPC_AdvertiseField(gcomp, standardName="air_pressure_at_sea_level", stateIntent=ESMF_STATEINTENT_EXPORT, rc=rc)
   end subroutine
 
   subroutine RealizeGrid(gcomp, rc)
@@ -93,8 +93,8 @@ module OCN
   subroutine Advertise(gcomp, rc)
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
-    call NUOPC_AdvertiseField(gcomp, fieldName="pmsl", stateIntent=ESMF_STATEINTENT_IMPORT, rc=rc)
-    call NUOPC_AdvertiseField(gcomp, fieldName="sst", stateIntent=ESMF_STATEINTENT_EXPORT, rc=rc)
+    call NUOPC_AdvertiseField(gcomp, standardName="air_pressure_at_sea_level", stateIntent=ESMF_STATEINTENT_IMPORT, rc=rc)
+    call NUOPC_AdvertiseField(gcomp, standardName="sea_surface_temperature", stateIntent=ESMF_STATEINTENT_EXPORT, rc=rc)
   end subroutine
 
   subroutine RealizeGrid(gcomp, rc)
@@ -129,8 +129,8 @@ module OCN
 
     ! 3. Create the Fields on the Grid
     ! Use the same StandardNames used in Advertise
-    field_sst = ESMF_FieldCreate(grid, name="sea_surface_temperature", typekind=ESMF_TYPEKIND_R8, rc=rc)
-    field_pmsl = ESMF_FieldCreate(grid, name="air_pressure_at_sea_level", typekind=ESMF_TYPEKIND_R8, rc=rc)
+    field_sst = ESMF_FieldCreate(name="sea_surface_temperature", grid=grid, typekind=ESMF_TYPEKIND_R8, rc=rc)
+    field_pmsl = ESMF_FieldCreate(name="air_pressure_at_sea_level", grid=grid, typekind=ESMF_TYPEKIND_R8, rc=rc)
 
     ! 4. Realize the Fields into the NUOPC system
     ! This attaches the created field to the NUOPC state
