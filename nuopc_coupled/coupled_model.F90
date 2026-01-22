@@ -161,65 +161,72 @@ end module OCN
 module MyDriver
   use ESMF
   use NUOPC
-  use NUOPC_Driver, driverSS => SetServices 
+  use NUOPC_Driver, driverSS => SetServices
+  use NUOPC_Base
   use ATM, only: atmSS => SetServices
   use OCN, only: ocnSS => SetServices
   implicit none
 
+  ! Make calendar global so it survives routine scope
   type(ESMF_Calendar) :: calendar
 
-
-  contains
+contains
 
   subroutine SetServices(gcomp, rc)
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
-    
-    ! 1. Derive from the base Driver
-    call NUOPC_CompDerive(gcomp, driverSS, rc=rc)
-    
-    ! 2. Attach the specialization for setting up components
-    ! Use the string literal to be safe
-    call NUOPC_CompSpecialize(gcomp, specLabel="label_SetModelComponents", &
-                              specRoutine=SetModelComponents, rc=rc)
 
-    ! 3. IMPORTANT: Create the Driver's Clock right here in SetServices
-    ! This bypasses the "method not found" error during the init phase.
+    ! 1. Derive from base driver
+    call NUOPC_CompDerive(gcomp, driverSS, rc=rc)
+
+    ! 2. Add driver specialization to set up components
+    !    Use reserved label for driver component setup
+    call NUOPC_CompSpecialize(gcomp, specRoutine=SetModelComponents, rc=rc)
+
+    ! 3. Create the driver clock
     call CreateDriverClock(gcomp, rc)
   end subroutine
 
+  !------------------------------------------------------
   subroutine CreateDriverClock(gcomp, rc)
-    type(ESMF_GridComp)  :: gcomp
+    type(ESMF_GridComp) :: gcomp
     integer, intent(out) :: rc
-    type(ESMF_Clock)     :: clock
-    type(ESMF_Time)      :: startTime, stopTime
+    type(ESMF_Clock) :: clock
+    type(ESMF_Time) :: startTime, stopTime
     type(ESMF_TimeInterval) :: timeStep
 
+    ! Create the calendar (global)
     calendar = ESMF_CalendarCreate(rc=rc)
     call ESMF_CalendarSet(calendar, ESMF_CALKIND_GREGORIAN, rc=rc)
+
+    ! Create start/stop times
     call ESMF_TimeSet(startTime, yy=2026, mm=1, dd=22, calendar=calendar, rc=rc)
     call ESMF_TimeSet(stopTime,  yy=2026, mm=1, dd=22, calendar=calendar, h=1, rc=rc)
+
+    ! Set the timestep
     call ESMF_TimeIntervalSet(timeStep, m=15, calendar=calendar, rc=rc)
-    
+
+    ! Create the clock and attach to the driver
     clock = ESMF_ClockCreate(timeStep, startTime, stopTime=stopTime, rc=rc)
     call ESMF_GridCompSet(gcomp, clock=clock, rc=rc)
   end subroutine
 
+  !------------------------------------------------------
   subroutine SetModelComponents(gcomp, rc)
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
-    
+
+    ! Add components
     call NUOPC_DriverAddComp(gcomp, "ATM", atmSS, petList=(/0,1/), rc=rc)
     call NUOPC_DriverAddComp(gcomp, "OCN", ocnSS, petList=(/2,3,4/), rc=rc)
-    
-    ! Provide a run sequence
-    ! This does not compile
-    !call NUOPC_DriverSetRunSequence(gcomp, "runSeq:  ATM -> OCN  :runSeq", rc=rc)
-    ! Alternative
-    call ESMF_AttributeSet(gcomp, name="RunSequenceString", value="runSeq:  ATM -> OCN -> ATM  :runSeq", rc=rc)
-  end subroutine
-end module MyDriver
 
+    ! Provide the run sequence using NUOPC API
+    !call NUOPC_DriverSetRunSequence(gcomp, "runSeq: ATM -> OCN :runSeq", rc=rc)
+    call NUOPC_DriverSetRunSequence(gcomp, slot=1, rc=rc)
+
+  end subroutine
+
+end module MyDriver
 
 
 !==============================================================================
