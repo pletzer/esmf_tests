@@ -62,8 +62,8 @@ module ATM
 
     ! 4. Realize the Fields into the NUOPC system
     ! This attaches the created field to the NUOPC state
-    call NUOPC_RealizeField(importState, field=field_sst, rc=rc)
-    call NUOPC_RealizeField(exportState, field=field_pmsl, rc=rc)
+    call NUOPC_Realize(importState, field=field_sst, rc=rc)
+    call NUOPC_Realize(exportState, field=field_pmsl, rc=rc)
   end subroutine
 
   subroutine Advance(gcomp, rc)
@@ -140,8 +140,8 @@ module OCN
 
     ! 4. Realize the Fields into the NUOPC system
     ! This attaches the created field to the NUOPC state
-    call NUOPC_RealizeField(importState, field=field_pmsl, rc=rc)
-    call NUOPC_RealizeField(exportState, field=field_sst, rc=rc)
+    call NUOPC_Realize(importState, field=field_pmsl, rc=rc)
+    call NUOPC_Realize(exportState, field=field_sst, rc=rc)
 
   end subroutine
 
