@@ -29,3 +29,6 @@ $(PROGRAM): $(OBJS) ocn.o atm.o
 
 clean:
 	rm -f *.o *.mod *.x
+
+coupled_model.x: coupled_model.F90
+	$(ESMF_F90COMPILER) $(ESMF_F90COMPILEOPTS) $(ESMF_F90COMPILEPATHS) $(ESMF_F90LINKOPTS) -o $@ $< -L$(ESMF_LIBDIR) $(ESMF_F90ESMFLINKLIBS)
