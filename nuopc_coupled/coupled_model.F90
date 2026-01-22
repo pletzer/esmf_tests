@@ -1,3 +1,6 @@
+! type make make coupled_model.x to compile
+! and rm PET*; mpiexec -n 5 coupled_model.x; cat PET0.ESMF_LogFile
+
 !==============================================================================
 ! ATM Component
 !==============================================================================
@@ -169,7 +172,7 @@ module MyDriver
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
     call NUOPC_CompDerive(gcomp, driverSS, rc=rc)
-    !call NUOPC_CompSpecialize(gcomp, specLabel="label_SetModelServices", specRoutine=SetModelServices, rc=rc)
+    call NUOPC_CompSpecialize(gcomp, specLabel="label_SetModelServices", specRoutine=SetModelServices, rc=rc)
     call NUOPC_CompSpecialize(gcomp, specLabel="label_SetModelComponents", specRoutine=SetModelComponents, rc=rc)
   end subroutine
 
@@ -184,6 +187,25 @@ module MyDriver
     !call NUOPC_DriverSetRunSequence(gcomp, "runSeq:  ATM -> OCN -> ATM  :runSeq", rc=rc)
     call ESMF_AttributeSet(gcomp, name="RunSequenceString", value="runSeq:  ATM -> OCN -> ATM  :runSeq", rc=rc)
   end subroutine
+
+  subroutine SetModelServices(gcomp, rc)
+    type(ESMF_GridComp)  :: gcomp
+    integer, intent(out) :: rc
+    type(ESMF_Clock)     :: clock
+    type(ESMF_Time)      :: startTime, stopTime
+    type(ESMF_TimeInterval) :: timeStep
+
+    ! 3. Create a Clock for the Driver (NUOPC requirement)
+    call ESMF_TimeSet(startTime, yy=2026, mm=1, dd=22, rc=rc)
+    call ESMF_TimeSet(stopTime,  yy=2026, mm=1, dd=23, rc=rc)
+    call ESMF_TimeIntervalSet(timeStep, h=1, rc=rc)
+    
+    clock = ESMF_ClockCreate(timeStep, startTime, stopTime=stopTime, rc=rc)
+    call ESMF_GridCompSet(gcomp, clock=clock, rc=rc)
+    
+    rc = ESMF_SUCCESS
+  end subroutine
+
 end module MyDriver
 
 !==============================================================================
