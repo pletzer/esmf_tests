@@ -169,8 +169,7 @@ module MyDriver
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
     call NUOPC_CompDerive(gcomp, driverSS, rc=rc)
-    call NUOPC_CompSpecialize(gcomp, specLabel=label_SetModelComponents, &
-      specRoutine=SetModelComponents, rc=rc)
+    call NUOPC_CompSpecialize(gcomp, specLabel="label_SetModelComponents", specRoutine=SetModelComponents, rc=rc)
   end subroutine
 
   subroutine SetModelComponents(gcomp, rc)
