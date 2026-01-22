@@ -169,14 +169,20 @@ module MyDriver
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
     call NUOPC_CompDerive(gcomp, driverSS, rc=rc)
+    !call NUOPC_CompSpecialize(gcomp, specLabel="label_SetModelServices", specRoutine=SetModelServices, rc=rc)
     call NUOPC_CompSpecialize(gcomp, specLabel="label_SetModelComponents", specRoutine=SetModelComponents, rc=rc)
   end subroutine
 
   subroutine SetModelComponents(gcomp, rc)
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
+    ! 1. Add components
     call NUOPC_DriverAddComp(gcomp, "ATM", atmSS, petList=(/0,1/), rc=rc)
     call NUOPC_DriverAddComp(gcomp, "OCN", ocnSS, petList=(/2,3,4/), rc=rc)
+
+    ! 2.  Define the Run Sequence
+    !call NUOPC_DriverSetRunSequence(gcomp, "runSeq:  ATM -> OCN -> ATM  :runSeq", rc=rc)
+    call ESMF_AttributeSet(gcomp, name="RunSequenceString", value="runSeq:  ATM -> OCN -> ATM  :runSeq", rc=rc)
   end subroutine
 end module MyDriver
 
