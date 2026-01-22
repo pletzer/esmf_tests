@@ -21,8 +21,11 @@ module ATM
   subroutine Advertise(gcomp, rc)
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
-    call NUOPC_AdvertiseField(gcomp, standardName="", stateIntent=ESMF_STATEINTENT_IMPORT, rc=rc)
-    call NUOPC_AdvertiseField(gcomp, standardName="air_pressure_at_sea_level", stateIntent=ESMF_STATEINTENT_EXPORT, rc=rc)
+    type(ESMF_State) :: importState, exportState
+    ! query for importState and exportState
+    call NUOPC_ModelGet(gcomp, importState=importState, exportState=exportState, rc=rc)
+    call NUOPC_Advertise(importState, StandardName="sea_surface_temperature", rc=rc)
+    call NUOPC_Advertise(exportState, StandardName="air_pressure_at_sea_level", rc=rc)
   end subroutine
 
   subroutine RealizeGrid(gcomp, rc)
@@ -93,8 +96,11 @@ module OCN
   subroutine Advertise(gcomp, rc)
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
-    call NUOPC_AdvertiseField(gcomp, standardName="air_pressure_at_sea_level", stateIntent=ESMF_STATEINTENT_IMPORT, rc=rc)
-    call NUOPC_AdvertiseField(gcomp, standardName="sea_surface_temperature", stateIntent=ESMF_STATEINTENT_EXPORT, rc=rc)
+    type(ESMF_State) :: importState, exportState
+    ! query for importState and exportState
+    call NUOPC_ModelGet(gcomp, importState=importState, exportState=exportState, rc=rc)
+    call NUOPC_Advertise(importState, standardName="air_pressure_at_sea_level", rc=rc)
+    call NUOPC_Advertise(exportState, standardName="sea_surface_temperature", rc=rc)
   end subroutine
 
   subroutine RealizeGrid(gcomp, rc)
