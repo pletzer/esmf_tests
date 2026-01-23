@@ -155,7 +155,7 @@ contains
     integer, intent(out) :: rc
 
     call NUOPC_CompDerive(gcomp, driverSS, rc=rc)
-    call NUOPC_CompSpecialize(gcomp, specRoutine=SetModelComponents, rc=rc)
+    call NUOPC_CompSpecialize(gcomp, specLabel=label_SetModelServices, specRoutine=SetModelComponents, rc=rc)
     call CreateDriverClock(gcomp, rc)
   end subroutine
 
@@ -167,7 +167,7 @@ contains
     call NUOPC_DriverAddComp(gcomp, "OCN", ocnSS, petList=(/2,3,4/), rc=rc)
 
     ! Minimal run sequence
-    call NUOPC_DriverSetRunSequence(gcomp, slot=1, rc=rc)
+    !call NUOPC_DriverSetRunSequence(gcomp, slot=1, rc=rc)
   end subroutine
 
   subroutine CreateDriverClock(gcomp, rc)
