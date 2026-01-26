@@ -82,6 +82,8 @@ module ATM
   !-----------------------------------------------------------------------------
 
   subroutine Realize(model, rc)
+    ! Create grid, fields and advertise iomport/export
+
     type(ESMF_GridComp)  :: model
     integer, intent(out) :: rc
 
@@ -101,7 +103,8 @@ module ATM
     gridIn = ESMF_GridCreateNoPeriDimUfrm(maxIndex=(/10, 100/), &
       minCornerCoord=(/10._ESMF_KIND_R8, 20._ESMF_KIND_R8/), &
       maxCornerCoord=(/100._ESMF_KIND_R8, 200._ESMF_KIND_R8/), &
-      coordSys=ESMF_COORDSYS_CART, staggerLocList=(/ESMF_STAGGERLOC_CENTER/), &
+      coordSys=ESMF_COORDSYS_CART, &
+      staggerLocList=(/ESMF_STAGGERLOC_CENTER/), &
       rc=rc)
 
     gridOut = gridIn ! for now out same as in
@@ -125,6 +128,36 @@ module ATM
     call NUOPC_Realize(exportState, field=field, rc=rc)
 
   end subroutine
+
+  !-----------------------------------------------------------------------------
+
+  subroutine Run(model, rc)
+    
+    ! Use this to initialize the values of the fields
+
+    type(ESMF_GridComp) :: model
+    integer, intent(out) :: rc
+
+    type(ESMF_State) :: exportState
+    type(ESMF_Field) :: sst, pmsl, rsns
+    real(ESMF_KIND_R8), pointer :: ptr(:,:)
+
+    rc = ESMF_SUCCESS
+
+    ! Get the export state
+    call NUOPC_ModelGet(model, exportState=exportState, rc=rc)
+
+    ! --- PMSL ---
+    call ESMF_StateGet(exportState, itemName="pmsl", field=pmsl, rc=rc)
+    call ESMF_FieldGet(pmsl, farrayPtr=ptr, rc=rc)
+    ptr = 101325.0_ESMF_KIND_R8
+
+    ! --- RSNS ---
+    call ESMF_StateGet(exportState, itemName="rsns", field=rsns, rc=rc)
+    call ESMF_FieldGet(rsns, farrayPtr=ptr, rc=rc)
+    ptr = 200.0_ESMF_KIND_R8
+  end subroutine
+
 
   !-----------------------------------------------------------------------------
 
