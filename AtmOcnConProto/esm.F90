@@ -18,7 +18,6 @@ module ESM
   ! activate sections of code that demonstrate how
   ! the ATM and OCN components can run on exclusive sets of PETs. Turning this
   ! on/off does not affect how the Connector component is specialized.
-#define WITHPETLISTS_on
 
   use ESMF
   use NUOPC
@@ -48,25 +47,13 @@ module ESM
 
     ! derive from NUOPC_Driver
     call NUOPC_CompDerive(driver, driverSS, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
 
     ! specialize driver
     call NUOPC_CompSpecialize(driver, specLabel=label_SetModelServices, &
       specRoutine=SetModelServices, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
 
     ! set driver verbosity
     call NUOPC_CompAttributeSet(driver, name="Verbosity", value="high", rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
 
   end subroutine
 
@@ -94,134 +81,69 @@ module ESM
 
    ! get the petCount
     call ESMF_GridCompGet(driver, petCount=petCount, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
 
     ! SetServices for ATM with petList on first half of PETs
-#ifdef WITHPETLISTS_on
     allocate(petList(petCount/2))
     do i=1, petCount/2
       petList(i) = i-1 ! PET labeling goes from 0 to petCount-1
     enddo
-#endif
     call NUOPC_DriverAddComp(driver, "ATM", atmSS, &
-#ifdef WITHPETLISTS_on
       petList=petList, &
-#endif
       comp=child, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-#ifdef WITHPETLISTS_on
     deallocate(petList)
-#endif
     verbosity = 0 ! reset
     verbosity = ibset(verbosity,0)  ! log basic intro/extro and indentation
     write(attrStr,"(I10)") verbosity
     call NUOPC_CompAttributeSet(child, name="Verbosity", value=attrStr, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
 
     ! SetServices for OCN with petList on second half of PETs
-#ifdef WITHPETLISTS_on
     allocate(petList(petCount/2))
     do i=1, petCount/2
       petList(i) = petCount/2 + i-1 ! PET labeling goes from 0 to petCount-1
     enddo
-#endif
     call NUOPC_DriverAddComp(driver, "OCN", ocnSS, &
-#ifdef WITHPETLISTS_on
       petList=petList, &
-#endif
       comp=child, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-#ifdef WITHPETLISTS_on
     deallocate(petList)
-#endif
+
     verbosity = 0 ! reset
     verbosity = ibset(verbosity,0)  ! log basic intro/extro and indentation
     write(attrStr,"(I10)") verbosity
     call NUOPC_CompAttributeSet(child, name="Verbosity", value=attrStr, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
 
     ! SetServices for atm2ocn
     call NUOPC_DriverAddComp(driver, srcCompLabel="ATM", dstCompLabel="OCN", &
       compSetServicesRoutine=cplSS, comp=conn, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
+
     verbosity = 0 ! reset
     verbosity = ibset(verbosity,0)  ! log basic intro/extro and indentation
     verbosity = ibset(verbosity,12) ! log CplList loop
     write(attrStr,"(I10)") verbosity
     call NUOPC_CompAttributeSet(conn, name="Verbosity", value=attrStr, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
 
     ! SetServices for ocn2atm
     call NUOPC_DriverAddComp(driver, srcCompLabel="OCN", dstCompLabel="ATM", &
       compSetServicesRoutine=cplSS, comp=conn, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
+
     verbosity = 0 ! reset
     verbosity = ibset(verbosity,0)  ! log basic intro/extro and indentation
     verbosity = ibset(verbosity,12) ! log CplList loop
     write(attrStr,"(I10)") verbosity
     call NUOPC_CompAttributeSet(conn, name="Verbosity", value=attrStr, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
 
     ! set the driver clock
     call ESMF_TimeIntervalSet(timeStep, m=15, rc=rc) ! 15 minute steps
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
 
     call ESMF_TimeSet(startTime, yy=2010, mm=6, dd=1, h=0, m=0, &
       calkindflag=ESMF_CALKIND_GREGORIAN, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
 
     call ESMF_TimeSet(stopTime, yy=2010, mm=6, dd=1, h=1, m=0, &
       calkindflag=ESMF_CALKIND_GREGORIAN, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
 
     internalClock = ESMF_ClockCreate(name="Application Clock", &
       timeStep=timeStep, startTime=startTime, stopTime=stopTime, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
 
     call ESMF_GridCompSet(driver, clock=internalClock, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
 
   end subroutine
 

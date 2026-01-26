@@ -156,7 +156,26 @@ contains
   subroutine Advance(gcomp, rc)
     type(ESMF_GridComp) :: gcomp
     integer, intent(out) :: rc
+
+    type(ESMF_State) :: exportState
+    type(ESMF_Field) :: field_sst
+    type(ESMF_Clock) :: clock
+    type(ESMF_Time)  :: currTime
+
     rc = ESMF_SUCCESS
+
+    call NUOPC_ModelGet(gcomp, exportState=exportState, driverClock=clock, rc=rc)
+
+    call ESMF_ClockGet(clock, currTime=currTime, rc=rc)
+
+    call ESMF_StateGet(exportState, &
+       itemName="sea_surface_temperature", field=field_sst, rc=rc)
+
+    ! Dummy SST value
+    call ESMF_FieldFill(field_sst, 300.0_8, rc=rc)
+
+    call ESMF_FieldSetTimestamp(field_sst, timeStamp=currTime, rc=rc)
+
   end subroutine
 
 end module OCN
