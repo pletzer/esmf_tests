@@ -26,8 +26,6 @@ module OCN
 
   public SetServices
 
-  character(len=*), parameter :: label_Initialize = 'Initialize'
-
   !-----------------------------------------------------------------------------
   contains
   !-----------------------------------------------------------------------------
@@ -59,15 +57,7 @@ module OCN
       file=__FILE__)) &
       return  ! bail out
 
-    ! Specialization for the Initialize phase
-    call NUOPC_CompSpecialize(model, specLabel=label_Initialize, &
-      specRoutine=Initialize, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-
-    call NUOPC_CompSpecialize(model, specLabel=label_SetClock, &
+   call NUOPC_CompSpecialize(model, specLabel=label_SetClock, &
       specRoutine=SetClock, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
@@ -79,73 +69,6 @@ module OCN
       line=__LINE__, &
       file=__FILE__)) &
       return  ! bail out
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-  subroutine Initialize(model, rc)
-    type(ESMF_GridComp)  :: model
-    integer, intent(out) :: rc
-
-    ! local variables
-    type(ESMF_State)        :: exportState
-    type(ESMF_Field)        :: sstField
-    real(8), pointer        :: sstData(:,:), xPtr(:), yPtr(:)
-    type(ESMF_Grid) :: grid
-    integer                 :: i, j, localElm(2), xLBound(1), xUBound(1), yLBound(1), yUBound(1)
-    real(8) :: x, y
-    
-    rc = ESMF_SUCCESS
-
-    call NUOPC_ModelGet(model, exportState=exportState, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return
-
-    ! get the field
-    call ESMF_StateGet(exportState, itemName="sst", field=sstField, rc=rc)
-
-    ! get the array pointer 
-    call ESMF_FieldGet(sstField, farrayPtr=sstData, rc=rc)
-
-    ! get the grid
-    call ESMF_FieldGet(sstField, grid=grid, rc=rc)
-
-    ! get the x coordinates
-    call ESMF_GridGetCoord(grid, coordDim=1, localDE=0, &
-                          staggerloc=ESMF_STAGGERLOC_CENTER, farrayPtr=xPtr, &
-                          computationalLBound=xLBound, computationalUBound=xUBound, &
-                          rc=rc)
-
-    ! get the y coordinates
-    call ESMF_GridGetCoord(grid, coordDim=2, localDE=0, &
-                          staggerloc=ESMF_STAGGERLOC_CENTER, farrayPtr=yPtr, &
-                          computationalLBound=yLBound, computationalUBound=yUBound, &
-                          rc=rc)
-    ! set the field
-    do j = yLBound(1), yUBound(1)
-      y = yPtr(j)
-      do i = xLBound(1), xUBound(1)
-        x = xPtr(i)
-        sstData(i, j) = x*(y + 2*x)
-      enddo
-    enddo
-
-
-    ! 4. Initialize the data
-    ! Note: ESMF handles decomposition across processors. This loop iterates only
-    ! over the local portion of the field on the current processor.
-    localElm = shape(sstData)
-    do j = 1, localElm(2)
-      do i = 1, localElm(1)
-        ! Set a uniform initial temperature (e.g., 20 degrees Celsius)
-        sstData(i, j) = 20.0_8
-      end do
-    end do
-    
-    ! Alternative: Read initial conditions from a file here if needed.
 
   end subroutine
 
@@ -213,14 +136,23 @@ module OCN
     type(ESMF_Grid)         :: gridIn
     type(ESMF_Grid)         :: gridOut
 
+
     real(8) :: minCornerCoord(2), maxCornerCoord(2)
     integer :: maxIndexAtm(2), maxIndexOcn(2), unit_num
+    real(8), pointer :: sstData(:, :), xPtr(:), yPtr(:)
+    type(ESMF_Grid) :: grid
+    integer :: i, j
+    real(8) :: x, y
+    integer :: xLBound(1), xUBound(1), yLBound(1), yUBound(1)
+    character(len=256) :: msg
 
     namelist /domain/ minCornerCoord, maxCornerCoord
     namelist /ocn/ maxIndexOcn
     namelist /atm/ maxIndexAtm
 
     rc = ESMF_SUCCESS
+
+    call ESMF_LogWrite('***** Start of Realize *****', ESMF_LOGMSG_INFO, rc=rc)
 
     ! read the namelist
     open(newunit=unit_num, file='2comp_time_example.nml', status='old', iostat=rc)
@@ -236,11 +168,12 @@ module OCN
       file=__FILE__)) &
       return  ! bail out
 
-    ! create a Grid object for Fields
+    ! create a Grid object for fields
     gridIn = ESMF_GridCreateNoPeriDimUfrm(maxIndex=maxIndexAtm, &
       minCornerCoord=minCornerCoord, &
       maxCornerCoord=maxCornerCoord, &
-      coordSys=ESMF_COORDSYS_CART, staggerLocList=(/ESMF_STAGGERLOC_CENTER/), &
+      coordSys=ESMF_COORDSYS_CART, &
+      staggerLocList=(/ESMF_STAGGERLOC_CENTER/), &
       rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
@@ -298,6 +231,45 @@ module OCN
       line=__LINE__, &
       file=__FILE__)) &
       return  ! bail out
+
+    ! Initialize SST
+    sstData => null()
+    call ESMF_FieldGet(field, farrayPtr=sstData, rc=rc)
+
+    ! get the grid
+    call ESMF_FieldGet(field, grid=grid, rc=rc)
+
+    ! ! get the x, y coordinates
+    ! call ESMF_GridGetCoord(grid, coordDim=1, localDE=-1, &
+    !                       staggerloc=ESMF_STAGGERLOC_CENTER, farrayPtr=xPtr, &
+    !                       exclusiveLBound=xLBound, exclusiveUBound=xUBound, &
+    !                       rc=rc)
+    ! call ESMF_GridGetCoord(grid, coordDim=2, localDE=-1, &
+    !                       staggerloc=ESMF_STAGGERLOC_CENTER, farrayPtr=yPtr, &
+    !                       exclusiveLBound=yLBound, exclusiveUBound=yUBound, &
+    !                       rc=rc)
+
+    ! write(msg, '(A,2I5,2I5)') 'sstData bounds lo, hi: ', lbound(sstData), ubound(sstData)
+    ! call ESMF_LogWrite(msg, ESMF_LOGMSG_INFO, rc=rc)
+    ! THIS HANGS
+    ! write(msg, '(A,2I5)') 'xPtr bounds lo, hi: ', lbound(xPtr), ubound(xPtr)
+    ! call ESMF_LogWrite(msg, ESMF_LOGMSG_INFO, rc=rc)
+    ! write(msg, '(A,2I5)') 'yPtr bounds lo, hi: ', lbound(yPtr), ubound(yPtr)
+    ! call ESMF_LogWrite(msg, ESMF_LOGMSG_INFO, rc=rc)
+    ! write(msg, '(A,2I5,A,2I5)') 'ocn bounds: ', xLBound(1), xUBound(1), ' y bounds: ', yLBound(1), yUBound(1)
+    ! call ESMF_LogWrite(msg, ESMF_LOGMSG_INFO, rc=rc)
+
+    
+    ! set the field
+    ! do j = yLBound(1), yUBound(1)
+    !   y = yPtr(j)
+    !   do i = xLBound(1), xUBound(1)
+    !     x = xPtr(i)
+    !     sstData(i, j) = x*(y + 2*x)
+    !   enddo
+    ! enddo
+
+    call ESMF_LogWrite('*****. End of Realize. *****', ESMF_LOGMSG_INFO, rc=rc)
 
   end subroutine
 

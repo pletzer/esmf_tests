@@ -3,6 +3,7 @@
 !==============================================================================
 module ATM
   use ESMF
+  use ESMF_GridMod, only: ESMF_Grid, ESMF_GridCreate, ESMF_GridAddCoord, ESMF_GridSetCoord
   use NUOPC
   use NUOPC_Model, modelSS => SetServices
   implicit none
@@ -33,23 +34,35 @@ contains
     type(ESMF_GridComp) :: gcomp
     integer, intent(out) :: rc
     type(ESMF_Grid) :: grid
-    real(ESMF_KIND_R8), pointer :: coordX(:), coordY(:)
-    integer :: i, lbnd(2), ubnd(2)
+    real(ESMF_KIND_R8), pointer :: xc(:), yc(:)
+    integer :: i, j, nx, ny
     type(ESMF_State) :: importState, exportState
     type(ESMF_Field) :: field_sst, field_pmsl
+    real(8) :: dx, dy
 
     ! Create simple 2D grid
-    grid = ESMF_GridCreate(name="atm_grid", maxIndex=(/20,30/), coordSys=ESMF_COORDSYS_CART, rc=rc)
-    call ESMF_GridAddCoord(grid, staggerLoc=ESMF_STAGGERLOC_CENTER, rc=rc)
-
-    call ESMF_GridGetCoord(grid, coordDim=1, staggerLoc=ESMF_STAGGERLOC_CENTER, farrayPtr=coordX, exclusiveLBound=lbnd, exclusiveUBound=ubnd, rc=rc)
-    do i=lbnd(1), ubnd(1)
-      coordX(i) = (real(i,8)-0.5_8)*(100.0_8/20.0_8)
-    end do
-    call ESMF_GridGetCoord(grid, coordDim=2, staggerLoc=ESMF_STAGGERLOC_CENTER, farrayPtr=coordY, exclusiveLBound=lbnd, exclusiveUBound=ubnd, rc=rc)
-    do i=lbnd(2), ubnd(2)
-      coordY(i) = (real(i,8)-0.5_8)*(100.0_8/30.0_8)
-    end do
+    nx = 10
+    ny = 30
+    dx = 1.0_8
+    dy = 1.0_8
+    grid = ESMF_GridCreateNoPeriDim(maxIndex=(/nx, ny/), &
+      coordSys=ESMF_COORDSYS_CART, &
+      indexflag=ESMF_INDEX_GLOBAL, &
+      coordDep1=(/1/), &
+      coordDep2=(/2/), &
+      rc=rc)
+    call ESMF_GridAddCoord(grid, staggerloc=ESMF_STAGGERLOC_CENTER, &
+        rc=rc)
+    call ESMF_GridGetCoord(grid, localDE=0, staggerLoc=ESMF_STAGGERLOC_CENTER, &
+        coordDim=1, farrayPtr=xc, rc=rc)
+    call ESMF_GridGetCoord(grid, localDE=0, staggerLoc=ESMF_STAGGERLOC_CENTER, &
+        coordDim=2, farrayPtr=yc, rc=rc)
+    do i = lbound(xc, 1), ubound(xc, 1)
+      xc(i) = (i - 0.5_8) * dx
+    enddo
+    do j = lbound(yc, 1), ubound(yc, 1)
+      yc(j) = (j - 0.5_8) * dy
+    enddo
 
     call NUOPC_ModelGet(gcomp, importState=importState, exportState=exportState, rc=rc)
     field_sst  = ESMF_FieldCreate(name="sea_surface_temperature", grid=grid, typekind=ESMF_TYPEKIND_R8, rc=rc)
@@ -165,6 +178,7 @@ contains
 
     call NUOPC_DriverAddComp(gcomp, "ATM", atmSS, petList=(/0,1/), rc=rc)
     call NUOPC_DriverAddComp(gcomp, "OCN", ocnSS, petList=(/2,3,4/), rc=rc)
+
 
     ! Minimal run sequence
     !call NUOPC_DriverSetRunSequence(gcomp, slot=1, rc=rc)

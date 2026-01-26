@@ -129,7 +129,8 @@ module ATM
     type(ESMF_Grid)         :: gridOut
  
     real(8) :: minCornerCoord(2), maxCornerCoord(2)
-    integer :: maxIndexOcn(2), maxIndexAtm(2), unit_num 
+    integer :: maxIndexOcn(2), maxIndexAtm(2), unit_num
+    character(len=256) :: msg
                                                                                                                                                                                                               
     namelist /domain/ minCornerCoord, maxCornerCoord 
     namelist /ocn/ maxIndexOcn
@@ -139,25 +140,26 @@ module ATM
     ! read the namelist 
     open(newunit=unit_num, file='2comp_time_example.nml', status='old', iostat=rc)
     if (rc /= 0) then 
-      print*,'cannot open 2comp_time_example.nml'
+      write(msg, '(A, A)') 'ERROR: cannto read ', '2comp_time_example.nml'
+      call ESMF_LogWrite(msg, ESMF_LOGMSG_INFO, rc=rc)
       return
     endif
 
     read(unit_num, nml=domain, iostat=rc) 
     if (rc /= 0) then 
-      print*,'cannot read domain namelist section'
+      call ESMF_LogWrite('ERROR: cannot read domain namelist section', ESMF_LOGMSG_INFO, rc=rc)
       return
     endif
 
     read(unit_num, nml=atm, iostat=rc)
-    if (rc /= 0) then 
-      print*,'cannot read atm namelist section'
+    if (rc /= 0) then
+      call ESMF_LogWrite('ERROR: cannot read atm namelist section', ESMF_LOGMSG_INFO, rc=rc)
       return
     endif
 
     read(unit_num, nml=ocn, iostat=rc)
     if (rc /= 0) then 
-      print*,'cannot read ocn namelist section'
+      call ESMF_LogWrite('ERROR: cannot read ocn namelist section', ESMF_LOGMSG_INFO, rc=rc)
       return
     endif
 
@@ -171,7 +173,8 @@ module ATM
       file=__FILE__)) &
       return  ! bail out
 
-    print*,'ATM: maxIndexOcn = ', maxIndexOcn, ' maxIndexAtm = ', maxIndexAtm
+    write(msg, '(A, 2I5, A, 2I5)') 'ATM: maxIndexOcn = ', maxIndexOcn, ' maxIndexAtm = ', maxIndexAtm
+    call ESMF_LogWrite(msg, ESMF_LOGMSG_INFO, rc=rc)
 
     ! create a Grid object for Fields
     gridIn = ESMF_GridCreateNoPeriDimUfrm(maxIndex=maxIndexOcn, &
@@ -291,6 +294,7 @@ module ATM
     integer :: xLBound(1), xUBound(1), yLBound(1), yUBound(1), i, j
     logical :: isConnected
     integer :: localDECount, lDE
+    character(len=256) :: msg
 
 #define NUOPC_TRACE__OFF
 #ifdef NUOPC_TRACE
@@ -342,7 +346,7 @@ module ATM
     isConnected = NUOPC_IsConnected(importState, fieldName="sst", rc=rc)
     if (.not. isConnected) then
       rc = ESMF_SUCCESS
-      print*,'ERROR import state sst is not connected'
+      call ESMF_LogWrite('ERROR: SST is not connected!', ESMF_LOGMSG_INFO, rc=rc)
       return
     endif
 
@@ -366,44 +370,51 @@ module ATM
           file=__FILE__)) &
           return  ! bail out
 
-    ! get the grid coordinates. THIS CRASHES!
-    xPtr => null()
-    xLBound = 0
-    xUBound = 0
-    call ESMF_GridGetCoord(grid, coordDim=1, localDE=0, &
-                          staggerloc=ESMF_STAGGERLOC_CENTER, farrayPtr=xPtr, &
-                          computationalLBound=xLBound, &
-                          computationalUBound=xUBound, &
-                          rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-          line=__LINE__, &
-          file=__FILE__)) &
-          return  ! bail out
+    ! ! get the grid coordinates. 
+    ! xPtr => null()
+    ! xLBound = 0
+    ! xUBound = 0
+    ! call ESMF_GridGetCoord(grid, coordDim=1, localDE=0, &
+    !                       staggerloc=ESMF_STAGGERLOC_CENTER, farrayPtr=xPtr, &
+    !                       exclusiveLBound=xLBound, &
+    !                       exclusiveUBound=xUBound, &
+    !                       rc=rc)
+    ! if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+    !       line=__LINE__, &
+    !       file=__FILE__)) &
+    !       return  ! bail out
 
-    yPtr => null()
-    yLBound = 0
-    yUBound = 0
-    call ESMF_GridGetCoord(grid, coordDim=2, localDE=0, &
-                          staggerloc=ESMF_STAGGERLOC_CENTER, farrayPtr=yPtr, &
-                          computationalLBound=yLBound, &
-                          computationalUBound=yUBound, &
-                          rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-          line=__LINE__, &
-          file=__FILE__)) &
-          return  ! bail out
+    ! yPtr => null()
+    ! yLBound = 0
+    ! yUBound = 0
+    ! call ESMF_GridGetCoord(grid, coordDim=2, localDE=0, &
+    !                       staggerloc=ESMF_STAGGERLOC_CENTER, farrayPtr=yPtr, &
+    !                       exclusiveLBound=yLBound, &
+    !                       exclusiveUBound=yUBound, &
+    !                       rc=rc)
+    ! if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+    !       line=__LINE__, &
+    !       file=__FILE__)) &
+    !       return  ! bail out
 
-    ! check sst
-    error = 0_8
-    do j = yLBound(1), yUBound(1)
-      y = yPtr(j)
-      do i = xLBound(1), xUBound(1)
-        x = xPtr(i)
-        error = error + abs(dataPtr(i,j) - x*(y + 2*x))
-      enddo
-    enddo
-    print *,'ATM: sst regridding error = ', error
-    if (error > 1.e-3) print *, dataPtr
+    ! write(msg, '(A,2I5,A,2I5)') 'atm x bounds: ', xLBound(1), xUBound(1), ' y bounds: ', yLBound(1), yUBound(1)
+    ! call ESMF_LogWrite(msg, ESMF_LOGMSG_INFO, rc=rc)
+
+
+    ! ! check sst
+    ! error = 0_8
+    ! do j = yLBound(1), yUBound(1)
+    !   y = yPtr(j)
+    !   do i = xLBound(1), xUBound(1)
+    !     x = xPtr(i)
+    !     error = error + abs(dataPtr(i,j) - x*(y + 2*x))
+    !   enddo
+    ! enddo
+    ! write(msg, '(A, E10.7)') 'ATM: sst regridding error = ', error
+    ! call ESMF_LogWrite(msg, ESMF_LOGMSG_INFO, rc=rc)
+    ! if (error > 1.e-3) then 
+    !    write(msg, '(A, F10.3, F10.3)') 'dataPtr min, max: ', minval(dataPtr), maxval(dataPtr)
+    ! endif
 
 
 
