@@ -96,8 +96,7 @@ module OCN
     type(ESMF_State)        :: importState, exportState
     type(ESMF_TimeInterval) :: stabilityTimeStep
     type(ESMF_Field)        :: field_sst, field_pmsl, field_rsns
-    type(ESMF_Grid)         :: gridIn
-    type(ESMF_Grid)         :: gridOut
+    type(ESMF_Grid)         :: grid
 
     rc = ESMF_SUCCESS
 
@@ -106,33 +105,33 @@ module OCN
       exportState=exportState, rc=rc)
 
     ! create a Grid object for Fields
-    gridIn = ESMF_GridCreateNoPeriDimUfrm(maxIndex=(/8, 4/), &
+    grid = ESMF_GridCreateNoPeriDimUfrm(maxIndex=(/8, 4/), &
       minCornerCoord=(/0._ESMF_KIND_R8, 0._ESMF_KIND_R8/), &
       maxCornerCoord=(/100._ESMF_KIND_R8, 200._ESMF_KIND_R8/), &
-      coordSys=ESMF_COORDSYS_CART, staggerLocList=(/ESMF_STAGGERLOC_CENTER, ESMF_STAGGERLOC_CORNER/), &
+      coordSys=ESMF_COORDSYS_CART, &
+      staggerLocList=(/ESMF_STAGGERLOC_CENTER, ESMF_STAGGERLOC_CORNER/), & ! conservative requires both center and corner
       rc=rc)
 
-    gridOut = gridIn ! for now out same as in
-
     ! importable field: air_pressure_at_sea_level
-    field_pmsl = ESMF_FieldCreate(name="pmsl", grid=gridIn, &
+    field_pmsl = ESMF_FieldCreate(name="pmsl", grid=grid, &
       typekind=ESMF_TYPEKIND_R8, rc=rc)
 
     call NUOPC_Realize(importState, field=field_pmsl, rc=rc)
 
     ! importable field: surface_net_downward_shortwave_flux
-    field_rsns = ESMF_FieldCreate(name="rsns", grid=gridIn, &
+    field_rsns = ESMF_FieldCreate(name="rsns", grid=grid, &
       typekind=ESMF_TYPEKIND_R8, rc=rc)
 
     call NUOPC_Realize(importState, field=field_rsns, rc=rc)
 
     ! exportable field: sea_surface_temperature
-    field_sst = ESMF_FieldCreate(name="sst", grid=gridOut, &
+    field_sst = ESMF_FieldCreate(name="sst", grid=grid, &
       typekind=ESMF_TYPEKIND_R8, & ! default is center
       rc=rc)
 
     ! initialize
     call ESMF_FieldFill(field_sst, dataFillScheme="const", const1=292.0_8, rc=rc)
+    
 
     call NUOPC_Realize(exportState, field=field_sst, rc=rc)
 
