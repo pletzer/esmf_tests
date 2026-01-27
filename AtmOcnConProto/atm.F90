@@ -175,6 +175,8 @@ module ATM
     ! local variables
     type(ESMF_Clock)            :: clock
     type(ESMF_State)            :: importState, exportState
+    type(ESMF_Field)            :: field_sst
+    real(8), pointer :: sstPtr(:, :)
     character(len=160)          :: msgString
 
     rc = ESMF_SUCCESS
@@ -198,6 +200,12 @@ module ATM
       preString="---------------------> to: ", unit=msgString, rc=rc)
 
     call ESMF_LogWrite(msgString, ESMF_LOGMSG_INFO, rc=rc)
+
+    ! query for importState
+    call NUOPC_ModelGet(model, importState=importState, rc=rc)
+    call ESMF_StateGet(importState, itemName='sst', field=field_sst, rc=rc)
+    call ESMF_FieldGet(field_sst, farrayPtr=sstPtr)
+
 
   end subroutine
 
