@@ -95,7 +95,7 @@ module OCN
     ! local variables
     type(ESMF_State)        :: importState, exportState
     type(ESMF_TimeInterval) :: stabilityTimeStep
-    type(ESMF_Field)        :: field
+    type(ESMF_Field)        :: field_sst, field_pmsl, field_rsns
     type(ESMF_Grid)         :: gridIn
     type(ESMF_Grid)         :: gridOut
 
@@ -115,22 +115,25 @@ module OCN
     gridOut = gridIn ! for now out same as in
 
     ! importable field: air_pressure_at_sea_level
-    field = ESMF_FieldCreate(name="pmsl", grid=gridIn, &
+    field_pmsl = ESMF_FieldCreate(name="pmsl", grid=gridIn, &
       typekind=ESMF_TYPEKIND_R8, rc=rc)
 
-    call NUOPC_Realize(importState, field=field, rc=rc)
+    call NUOPC_Realize(importState, field=field_pmsl, rc=rc)
 
     ! importable field: surface_net_downward_shortwave_flux
-    field = ESMF_FieldCreate(name="rsns", grid=gridIn, &
+    field_rsns = ESMF_FieldCreate(name="rsns", grid=gridIn, &
       typekind=ESMF_TYPEKIND_R8, rc=rc)
 
-    call NUOPC_Realize(importState, field=field, rc=rc)
+    call NUOPC_Realize(importState, field=field_rsns, rc=rc)
 
     ! exportable field: sea_surface_temperature
-    field = ESMF_FieldCreate(name="sst", grid=gridOut, &
+    field_sst = ESMF_FieldCreate(name="sst", grid=gridOut, &
       typekind=ESMF_TYPEKIND_R8, rc=rc)
 
-    call NUOPC_Realize(exportState, field=field, rc=rc)
+    ! initialize
+    call ESMF_FieldFill(field_sst, dataFillScheme="const", const1=292.0_8, rc=rc)
+
+    call NUOPC_Realize(exportState, field=field_sst, rc=rc)
 
   end subroutine
 

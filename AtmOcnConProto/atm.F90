@@ -113,9 +113,6 @@ module ATM
     field_sst = ESMF_FieldCreate(name="sst", grid=gridIn, &
       typekind=ESMF_TYPEKIND_R8, rc=rc)
 
-    ! fill in default values
-    call ESMF_FieldFill(field_sst, dataFillScheme="const", const1=292.0_8, rc=rc)
-
     call NUOPC_Realize(importState, field=field_sst, rc=rc)
 
     ! exportable field: air_pressure_at_sea_level
@@ -133,7 +130,7 @@ module ATM
       typekind=ESMF_TYPEKIND_R8, rc=rc)
 
     ! fill in default values
-    call ESMF_FieldFill(field_rsns, dataFillScheme="const", const1=300.0_8, rc=rc)    
+    call ESMF_FieldFill(field_rsns, dataFillScheme="const", const1=300.0_8, rc=rc)
 
     call NUOPC_Realize(exportState, field=field_rsns, rc=rc)
 
