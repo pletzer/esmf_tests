@@ -106,10 +106,10 @@ module OCN
       exportState=exportState, rc=rc)
 
     ! create a Grid object for Fields
-    gridIn = ESMF_GridCreateNoPeriDimUfrm(maxIndex=(/100, 10/), &
-      minCornerCoord=(/10._ESMF_KIND_R8, 20._ESMF_KIND_R8/), &
+    gridIn = ESMF_GridCreateNoPeriDimUfrm(maxIndex=(/8, 4/), &
+      minCornerCoord=(/0._ESMF_KIND_R8, 0._ESMF_KIND_R8/), &
       maxCornerCoord=(/100._ESMF_KIND_R8, 200._ESMF_KIND_R8/), &
-      coordSys=ESMF_COORDSYS_CART, staggerLocList=(/ESMF_STAGGERLOC_CENTER/), &
+      coordSys=ESMF_COORDSYS_CART, staggerLocList=(/ESMF_STAGGERLOC_CENTER, ESMF_STAGGERLOC_CORNER/), &
       rc=rc)
 
     gridOut = gridIn ! for now out same as in
@@ -128,7 +128,8 @@ module OCN
 
     ! exportable field: sea_surface_temperature
     field_sst = ESMF_FieldCreate(name="sst", grid=gridOut, &
-      typekind=ESMF_TYPEKIND_R8, rc=rc)
+      typekind=ESMF_TYPEKIND_R8, & ! default is center
+      rc=rc)
 
     ! initialize
     call ESMF_FieldFill(field_sst, dataFillScheme="const", const1=292.0_8, rc=rc)

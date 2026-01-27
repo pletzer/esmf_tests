@@ -111,7 +111,9 @@ module CON
     call ESMF_StateAdd(state, (/interDstFields/), rc=rc)
     ! compute the first RouteHandle for srcFields->interDstFields (Regrid)
     call ESMF_FieldBundleRegridStore(srcFields, interDstFields, &
-      unmappedaction=ESMF_UNMAPPEDACTION_IGNORE, routehandle=rh1, rc=rc)
+      !unmappedaction=ESMF_UNMAPPEDACTION_IGNORE, &
+      regridMethod=ESMF_REGRIDMETHOD_CONSERVE, &
+      routehandle=rh1, rc=rc)
     call ESMF_RouteHandleSet(rh1, name="src2interDstRH", rc=rc)
    ! compute the second RouteHandle for interDstFields->dstFields (Redist)
     call ESMF_FieldBundleRedistStore(interDstFields, dstFields, &

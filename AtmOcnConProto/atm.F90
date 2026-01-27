@@ -82,7 +82,7 @@ module ATM
   !-----------------------------------------------------------------------------
 
   subroutine Realize(model, rc)
-    ! Create grid, fields and advertise iomport/export
+    ! Create grid, fields and advertise import/export
 
     type(ESMF_GridComp)  :: model
     integer, intent(out) :: rc
@@ -100,18 +100,19 @@ module ATM
       exportState=exportState, rc=rc)
 
     ! create a Grid object for Fields
-    gridIn = ESMF_GridCreateNoPeriDimUfrm(maxIndex=(/10, 100/), &
-      minCornerCoord=(/10._ESMF_KIND_R8, 20._ESMF_KIND_R8/), &
+    gridIn = ESMF_GridCreateNoPeriDimUfrm(maxIndex=(/4, 8/), &
+      minCornerCoord=(/0._ESMF_KIND_R8, 0._ESMF_KIND_R8/), &
       maxCornerCoord=(/100._ESMF_KIND_R8, 200._ESMF_KIND_R8/), &
       coordSys=ESMF_COORDSYS_CART, &
-      staggerLocList=(/ESMF_STAGGERLOC_CENTER/), &
+      staggerLocList=(/ESMF_STAGGERLOC_CENTER, ESMF_STAGGERLOC_CORNER/), &
       rc=rc)
 
     gridOut = gridIn ! for now out same as in
 
     ! importable field: sea_surface_temperature
     field_sst = ESMF_FieldCreate(name="sst", grid=gridIn, &
-      typekind=ESMF_TYPEKIND_R8, rc=rc)
+      typekind=ESMF_TYPEKIND_R8, & ! default is center
+      rc=rc)
 
     call NUOPC_Realize(importState, field=field_sst, rc=rc)
 
@@ -121,7 +122,6 @@ module ATM
 
     ! fill in default values
     call ESMF_FieldFill(field_pmsl, dataFillScheme="const", const1=101000.0_8, rc=rc)
-
 
     call NUOPC_Realize(exportState, field=field_pmsl, rc=rc)
 
@@ -178,6 +178,7 @@ module ATM
     type(ESMF_Field)            :: field_sst
     real(8), pointer :: sstPtr(:, :)
     character(len=160)          :: msgString
+    integer :: i, j
 
     rc = ESMF_SUCCESS
 
@@ -205,6 +206,12 @@ module ATM
     call NUOPC_ModelGet(model, importState=importState, rc=rc)
     call ESMF_StateGet(importState, itemName='sst', field=field_sst, rc=rc)
     call ESMF_FieldGet(field_sst, farrayPtr=sstPtr)
+
+    do j = lbound(sstPtr, 2), ubound(sstPtr, 2)
+      do i = lbound(sstPtr, 1), ubound(sstPtr, 1)
+        print*,'i = ', i, ' j = ', j, ' sst = ', sstPtr(i, j)
+      enddo
+    enddo
 
 
   end subroutine
