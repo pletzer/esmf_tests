@@ -97,6 +97,10 @@ module OCN
     type(ESMF_TimeInterval) :: stabilityTimeStep
     type(ESMF_Field)        :: field_sst, field_pmsl, field_rsns
     type(ESMF_Grid)         :: grid
+    real(ESMF_KIND_R8), pointer  :: xPtr(:, :), yPtr(:, :), sstPtr(:, :)
+    integer :: i, j
+    real(8) :: x, y
+    integer :: lb(2), ub(2)
 
     rc = ESMF_SUCCESS
 
@@ -105,11 +109,12 @@ module OCN
       exportState=exportState, rc=rc)
 
     ! create a Grid object for Fields
-    grid = ESMF_GridCreateNoPeriDimUfrm(maxIndex=(/8, 4/), &
+    grid = ESMF_GridCreateNoPeriDimUfrm(maxIndex=(/80, 40/), &
       minCornerCoord=(/0._ESMF_KIND_R8, 0._ESMF_KIND_R8/), &
       maxCornerCoord=(/100._ESMF_KIND_R8, 200._ESMF_KIND_R8/), &
       coordSys=ESMF_COORDSYS_CART, &
       staggerLocList=(/ESMF_STAGGERLOC_CENTER, ESMF_STAGGERLOC_CORNER/), & ! conservative requires both center and corner
+      regDecomp=(/1, 2/), & ! ESMF_GRIDDECOMPFLAG_SINGLE, &   ! <--- force serial layout
       rc=rc)
 
     ! importable field: air_pressure_at_sea_level
@@ -131,6 +136,26 @@ module OCN
 
     ! initialize
     call ESMF_FieldFill(field_sst, dataFillScheme="const", const1=292.0_8, rc=rc)
+
+    call ESMF_GridGetCoord(grid, coordDim=1, &
+      staggerLoc=ESMF_STAGGERLOC_CENTER, farrayPtr=xPtr, &
+      exclusiveLBound=lb, exclusiveUBound=ub, &
+      rc=rc)
+    call ESMF_GridGetCoord(grid, coordDim=2, &
+      staggerLoc=ESMF_STAGGERLOC_CENTER, farrayPtr=yPtr, &
+      rc=rc)
+
+    call ESMF_FieldGet(field=field_sst, farrayPtr=sstPtr, rc=rc)
+    print *,'>>>>>>>>>>>> lb = ', lb, ' ub = ', ub
+
+    do j = lb(2), ub(2)
+      do i = lb(1), ub(1)
+        x = xPtr(i, j)
+        y = yPtr(i, j)
+        print *,'>>>>>>OCN Realize: i=', i, ' j=', j, ' x=', x, ' y=', y !, ' sstPtr=', sstPtr(i, j)
+        !sstPtr(i, j) = x + y
+      enddo
+    enddo
     
 
     call NUOPC_Realize(exportState, field=field_sst, rc=rc)
