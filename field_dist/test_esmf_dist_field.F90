@@ -91,6 +91,7 @@ program esmf_2d_dist_grid_example
   dx = (xmax - xmin) / real(nx, dp)
   dy = (ymax - ymin) / real(ny, dp)
 
+  ! cell centres
   call ESMF_GridGetCoord(grid, coordDim=1, staggerloc=ESMF_STAGGERLOC_CENTER, &
                          farrayPtr=x2dCentre, &
                          exclusiveLBound=iBeg, exclusiveUBound=iEnd, rc=rc)
@@ -100,6 +101,19 @@ program esmf_2d_dist_grid_example
      do i = iBeg(1), iEnd(1)
         x2dCentre(i,j) = xmin + (i - 0.5_dp)*dx
         y2dCentre(i,j) = ymin + (j - 0.5_dp)*dy
+     end do
+  end do
+
+  ! nodes
+  call ESMF_GridGetCoord(grid, coordDim=1, staggerloc=ESMF_STAGGERLOC_CORNER, &
+                         farrayPtr=x2dCorner, &
+                         exclusiveLBound=iBeg, exclusiveUBound=iEnd, rc=rc)
+  call ESMF_GridGetCoord(grid, coordDim=2, staggerloc=ESMF_STAGGERLOC_CORNER, &
+                         farrayPtr=y2dCorner)
+  do j = iBeg(2), iEnd(2)
+     do i = iBeg(1), iEnd(1)
+        x2dCorner(i,j) = xmin + (i - 1)*dx
+        y2dCorner(i,j) = ymin + (j - 1)*dy
      end do
   end do
 
