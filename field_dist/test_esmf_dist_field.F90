@@ -23,8 +23,9 @@ program esmf_2d_dist_grid_example
   integer(I4) :: iBeg(2), iEnd(2)
 
   ! Coordinate pointers
-  real(dp), allocatable :: x(:), y(:)
-  real(dp), pointer :: x2d(:,:), y2d(:,:)
+  real(dp) :: dx, dy
+  real(dp), pointer :: x2dCorner(:,:), y2dCorner(:,:)
+  real(dp), pointer :: x2dCentre(:,:), y2dCentre(:,:)
 
   ! MPI info
   integer(I4) :: pet, npets
@@ -65,17 +66,6 @@ program esmf_2d_dist_grid_example
   end if
 
   !-----------------------------------------------------------------
-  ! Create global lon/lat arrays
-  !-----------------------------------------------------------------
-  allocate(x(nx), y(ny))
-  do i = 1, nx
-     x(i) = xmin + (i-0.5)*(xmax - xmin)/nx
-  end do
-  do j = 1, ny
-     y(j) = ymin + (j-0.5)*(ymax - ymin)/ny
-  end do
-
-  !-----------------------------------------------------------------
   ! Create distributed grid with user decomposition
   !-----------------------------------------------------------------
   grid = ESMF_GridCreateNoPeriDim( &
@@ -92,20 +82,24 @@ program esmf_2d_dist_grid_example
   !-----------------------------------------------------------------
   call ESMF_GridAddCoord(grid, staggerloc=ESMF_STAGGERLOC_CENTER, &
                                 rc=rc)
-  if (rc /= ESMF_SUCCESS) stop "GridAddCoord failed"
-
-  call ESMF_GridGetCoord(grid, coordDim=1, staggerloc=ESMF_STAGGERLOC_CENTER, &
-                         farrayPtr=x2d, exclusiveLBound=iBeg, exclusiveUBound=iEnd, rc=rc)
-  call ESMF_GridGetCoord(grid, coordDim=2, staggerloc=ESMF_STAGGERLOC_CENTER, &
-                         farrayPtr=y2d)
+  call ESMF_GridAddCoord(grid, staggerloc=ESMF_STAGGERLOC_CORNER, &
+                                rc=rc)
 
   !-----------------------------------------------------------------
   ! Fill local coordinates
   !-----------------------------------------------------------------
+  dx = (xmax - xmin) / real(nx, dp)
+  dy = (ymax - ymin) / real(ny, dp)
+
+  call ESMF_GridGetCoord(grid, coordDim=1, staggerloc=ESMF_STAGGERLOC_CENTER, &
+                         farrayPtr=x2dCentre, &
+                         exclusiveLBound=iBeg, exclusiveUBound=iEnd, rc=rc)
+  call ESMF_GridGetCoord(grid, coordDim=2, staggerloc=ESMF_STAGGERLOC_CENTER, &
+                         farrayPtr=y2dCentre)
   do j = iBeg(2), iEnd(2)
      do i = iBeg(1), iEnd(1)
-        x2d(i,j) = x(i)
-        y2d(i,j) = y(j)
+        x2dCentre(i,j) = xmin + (i - 0.5_dp)*dx
+        y2dCentre(i,j) = ymin + (j - 0.5_dp)*dy
      end do
   end do
 
