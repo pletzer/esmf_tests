@@ -205,7 +205,7 @@ module ATM
     ! query for importState
     call NUOPC_ModelGet(model, importState=importState, rc=rc)
     call ESMF_StateGet(importState, itemName='sst', field=field_sst, rc=rc)
-    call ESMF_FieldGet(field_sst, farrayPtr=sstPtr)
+    call ESMF_FieldGet(field_sst, farrayPtr=sstPtr, rc=rc)
 
     do j = lbound(sstPtr, 2), ubound(sstPtr, 2)
       do i = lbound(sstPtr, 1), ubound(sstPtr, 1)

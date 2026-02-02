@@ -22,6 +22,8 @@ ifneq ($(origin ESMFMKFILE), environment)
 $(error Environment variable ESMFMKFILE was not set.)
 endif
 
+all: esmApp test_distgrid.x
+
 include $(ESMFMKFILE)
 
 # strip quotes around the ESMF_INTERNAL_MPIRUN value
@@ -49,8 +51,13 @@ ESMF_INTERNAL_MPIRUN := $(shell echo $(ESMF_INTERNAL_MPIRUN))
 esmApp: esmApp.o esm.o atm.o ocn.o conn.o
 	$(ESMF_F90LINKER) $(ESMF_F90LINKOPTS) $(ESMF_F90LINKPATHS) $(ESMF_F90LINKRPATHS) -o $@ $^ $(ESMF_F90ESMFLINKLIBS)
 
+test_distgrid.o: dist_mod.o
+
+test_distgrid.x: test_distgrid.o
+	$(ESMF_F90LINKER) $(ESMF_F90LINKOPTS) $(ESMF_F90LINKPATHS) $(ESMF_F90LINKRPATHS) -o $@ $^ $(ESMF_F90ESMFLINKLIBS)
+
 # module dependencies:
-esmApp.o: esm.o
+esmApp.o: esm.o 
 esm.o: atm.o ocn.o conn.o
 
 # -----------------------------------------------------------------------------
@@ -72,7 +79,10 @@ info:
 edit:
 	nedit esmApp.F90 esm.F90 atm.F90 ocn.F90 conn.F90 &
 
-run:
+run: esmApp
 	rm PET*
 	$(ESMF_INTERNAL_MPIRUN) -np 4 ./esmApp
 	cat PET0.ESMF_LogFile
+
+test: test_distgrid.x
+	mpiexec -n 6 $<

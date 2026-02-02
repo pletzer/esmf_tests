@@ -119,43 +119,41 @@ module OCN
 
     ! importable field: air_pressure_at_sea_level
     field_pmsl = ESMF_FieldCreate(name="pmsl", grid=grid, &
-      typekind=ESMF_TYPEKIND_R8, rc=rc)
+      staggerloc=ESMF_STAGGERLOC_CENTER, typekind=ESMF_TYPEKIND_R8, rc=rc)
 
     call NUOPC_Realize(importState, field=field_pmsl, rc=rc)
 
     ! importable field: surface_net_downward_shortwave_flux
     field_rsns = ESMF_FieldCreate(name="rsns", grid=grid, &
-      typekind=ESMF_TYPEKIND_R8, rc=rc)
+      staggerloc=ESMF_STAGGERLOC_CENTER, typekind=ESMF_TYPEKIND_R8, rc=rc)
 
     call NUOPC_Realize(importState, field=field_rsns, rc=rc)
 
     ! exportable field: sea_surface_temperature
     field_sst = ESMF_FieldCreate(name="sst", grid=grid, &
-      typekind=ESMF_TYPEKIND_R8, & ! default is center
-      rc=rc)
+      staggerloc=ESMF_STAGGERLOC_CENTER, typekind=ESMF_TYPEKIND_R8, rc=rc)
 
     ! initialize
     call ESMF_FieldFill(field_sst, dataFillScheme="const", const1=292.0_8, rc=rc)
+    ! call ESMF_GridGetCoord(grid, coordDim=1, &
+    !   staggerLoc=ESMF_STAGGERLOC_CENTER, farrayPtr=xPtr, &
+    !   exclusiveLBound=lb, exclusiveUBound=ub, &
+    !   rc=rc)
+    ! call ESMF_GridGetCoord(grid, coordDim=2, &
+    !   staggerLoc=ESMF_STAGGERLOC_CENTER, farrayPtr=yPtr, &
+    !   rc=rc)
 
-    call ESMF_GridGetCoord(grid, coordDim=1, &
-      staggerLoc=ESMF_STAGGERLOC_CENTER, farrayPtr=xPtr, &
-      exclusiveLBound=lb, exclusiveUBound=ub, &
-      rc=rc)
-    call ESMF_GridGetCoord(grid, coordDim=2, &
-      staggerLoc=ESMF_STAGGERLOC_CENTER, farrayPtr=yPtr, &
-      rc=rc)
+    ! call ESMF_FieldGet(field=field_sst, farrayPtr=sstPtr, rc=rc)
+    ! print *,'>>>>>>>>>>>> lb = ', lb, ' ub = ', ub
 
-    call ESMF_FieldGet(field=field_sst, farrayPtr=sstPtr, rc=rc)
-    print *,'>>>>>>>>>>>> lb = ', lb, ' ub = ', ub
-
-    do j = lb(2), ub(2)
-      do i = lb(1), ub(1)
-        x = xPtr(i, j)
-        y = yPtr(i, j)
-        print *,'>>>>>>OCN Realize: i=', i, ' j=', j, ' x=', x, ' y=', y !, ' sstPtr=', sstPtr(i, j)
-        !sstPtr(i, j) = x + y
-      enddo
-    enddo
+    ! do j = lb(2), ub(2)
+    !   do i = lb(1), ub(1)
+    !     x = xPtr(i, j)
+    !     y = yPtr(i, j)
+    !     print *,'>>>>>>OCN Realize: i=', i, ' j=', j, ' x=', x, ' y=', y !, ' sstPtr=', sstPtr(i, j)
+    !     sstPtr(i, j) = x + y
+    !   enddo
+    ! enddo
     
 
     call NUOPC_Realize(exportState, field=field_sst, rc=rc)

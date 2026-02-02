@@ -73,4 +73,15 @@ contains
         call ESMF_GridDestroy(obj%egrid)
     end subroutine
 
-end module 
+end module
+
+module distfield_mod
+    use ESMF
+    use distgrid_mod
+    implicit none
+
+    type distfield_type
+        type(distgrid_type) :: dgrid
+    end type
+
+end module
