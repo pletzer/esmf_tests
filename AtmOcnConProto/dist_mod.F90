@@ -20,8 +20,9 @@ contains
         real(8), pointer :: x2dPtr(:, :), y2dPtr(:, :)
         integer :: nx, ny, rc, i, j, i0, j0, i1, j1
 
-        nx = size(x2dCorner, 1)
-        ny = size(x2dCorner, 2)
+        ! number of cells
+        nx = size(x2dCorner, 1) - 1
+        ny = size(x2dCorner, 2) - 1
 
         ! distributed grid with user decomp
         obj%egrid = ESMF_GridCreateNoPeriDim( &
@@ -45,7 +46,7 @@ contains
         call ESMF_GridGetCoord(obj%egrid, coordDim=2, staggerloc=ESMF_STAGGERLOC_CORNER, &
                     farrayPtr=y2dPtr, rc=rc)
         do j = obj%iBegCorner(2), obj%iEndCorner(2)
-            do i = 1, obj%iBegCorner(1), obj%iEndCorner(1)
+            do i = obj%iBegCorner(1), obj%iEndCorner(1)
                 x2dPtr(i, j) = x2dCorner(i, j)
                 y2dPtr(i, j) = y2dCorner(i, j)
             enddo
@@ -59,7 +60,7 @@ contains
                     farrayPtr=y2dPtr, rc=rc)
         do j0 = obj%iBegCentre(2), obj%iEndCentre(2)
             j1 = j0 + 1
-            do i0 = 1, obj%iBegCentre(1), obj%iEndCentre(1)
+            do i0 = obj%iBegCentre(1), obj%iEndCentre(1)
                 i1 = i0 + 1
                 x2dPtr(i0, j0) = 0.25_8*(x2dCorner(i0, j0) + x2dCorner(i1, j0) + x2dCorner(i1, j1) + x2dCorner(i0, j1))
                 y2dPtr(i0, j0) = 0.25_8*(y2dCorner(i0, j0) + y2dCorner(i1, j0) + y2dCorner(i1, j1) + y2dCorner(i0, j1))
@@ -81,7 +82,43 @@ module distfield_mod
     implicit none
 
     type distfield_type
-        type(distgrid_type) :: dgrid
+        character(len=32) :: name
+        type(distgrid_type), pointer :: dgridPtr
+        real(8), pointer :: dataPtr(:, :)
+        type(ESMF_Field) :: efield
     end type
 
-end module
+contains
+
+    subroutine distfield_new(obj, name, dgrid, staggerloc, data)
+        type(distfield_type) :: obj
+        character(len=*), intent(in) :: name
+        type(distgrid_type), target, intent(in) :: dgrid
+        type(ESMF_StaggerLoc), intent(in) :: staggerloc
+        real(8), intent(in) :: data(:, :)
+        integer :: iBeg(2), iEnd(2)
+
+        integer :: i, j, rc
+        real(8), pointer :: dataPtr
+
+        obj%name = name
+        obj%dgridPtr => dgrid
+
+        obj%efield = ESMF_FieldCreate(dgrid%egrid, name=name, staggerloc=staggerloc, typekind=ESMF_TYPEKIND_R8, rc=rc)
+        call ESMF_FieldGet(obj%efield, farrayPtr=obj%dataPtr, rc=rc)
+
+        ! set the data
+        obj%dataPtr(:,:) = data(:,:)
+
+    end subroutine
+
+    subroutine distfield_del(obj)
+        type(distfield_type) :: obj
+        call ESMF_FieldDestroy(obj%efield)
+    end subroutine
+
+
+end module 
+
+
+

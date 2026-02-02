@@ -53,7 +53,7 @@ esmApp: esmApp.o esm.o atm.o ocn.o conn.o
 
 test_distgrid.o: dist_mod.o
 
-test_distgrid.x: test_distgrid.o
+test_distgrid.x: test_distgrid.o dist_mod.o
 	$(ESMF_F90LINKER) $(ESMF_F90LINKOPTS) $(ESMF_F90LINKPATHS) $(ESMF_F90LINKRPATHS) -o $@ $^ $(ESMF_F90ESMFLINKLIBS)
 
 # module dependencies:
