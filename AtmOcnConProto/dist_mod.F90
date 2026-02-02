@@ -15,7 +15,7 @@ contains
     subroutine distgrid_new(obj, x2dCorner, y2dCorner, regDecomp)
         type(distgrid_type), intent(inout) :: obj
         real(8), intent(in) :: x2dCorner(:, :), y2dCorner(:, :)
-        integer :: regDecomp(:)
+        integer, intent(in) :: regDecomp(:)
 
         integer :: nx, ny, rc, i, j, i0, j0, i1, j1
 
@@ -51,7 +51,7 @@ contains
             enddo
         enddo
 
-        ! set the centre coordinates
+        ! set the centre coordinates, assume no halo...
         call ESMF_GridGetCoord(obj%egrid, coordDim=1, staggerloc=ESMF_STAGGERLOC_CENTER, &
                     farrayPtr=obj%x2dCentrePtr, &
                     exclusiveLBound=obj%iBegCentre, exclusiveUBound=obj%iEndCentre, rc=rc)
@@ -71,6 +71,8 @@ contains
     subroutine distgrid_del(obj)
         type(distgrid_type), intent(inout) :: obj
         call ESMF_GridDestroy(obj%egrid)
+        nullify(obj%x2dCornerPtr, obj%y2dCornerPtr, &
+                obj%x2dCentrePtr, obj%y2dCentrePtr)
     end subroutine
 
 end module
@@ -113,6 +115,7 @@ contains
     subroutine distfield_del(obj)
         type(distfield_type), intent(inout) :: obj
         call ESMF_FieldDestroy(obj%efield)
+        nullify(obj%localDataPtr)
     end subroutine
 
 
