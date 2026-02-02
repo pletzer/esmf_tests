@@ -17,7 +17,6 @@ contains
         real(8), intent(in) :: x2dCorner(:, :), y2dCorner(:, :)
         integer :: regDecomp(:)
 
-        real(8), pointer :: x2dPtr(:, :), y2dPtr(:, :)
         integer :: nx, ny, rc, i, j, i0, j0, i1, j1
 
         ! number of cells
@@ -41,29 +40,29 @@ contains
 
         ! set the corner coordinates
         call ESMF_GridGetCoord(obj%egrid, coordDim=1, staggerloc=ESMF_STAGGERLOC_CORNER, &
-                    farrayPtr=x2dPtr, &
+                    farrayPtr=obj%x2dCornerPtr, &
                     exclusiveLBound=obj%iBegCorner, exclusiveUBound=obj%iEndCorner, rc=rc)
         call ESMF_GridGetCoord(obj%egrid, coordDim=2, staggerloc=ESMF_STAGGERLOC_CORNER, &
-                    farrayPtr=y2dPtr, rc=rc)
+                    farrayPtr=obj%y2dCornerPtr, rc=rc)
         do j = obj%iBegCorner(2), obj%iEndCorner(2)
             do i = obj%iBegCorner(1), obj%iEndCorner(1)
-                x2dPtr(i, j) = x2dCorner(i, j)
-                y2dPtr(i, j) = y2dCorner(i, j)
+                obj%x2dCornerPtr(i, j) = x2dCorner(i, j)
+                obj%y2dCornerPtr(i, j) = y2dCorner(i, j)
             enddo
         enddo
 
         ! set the centre coordinates
         call ESMF_GridGetCoord(obj%egrid, coordDim=1, staggerloc=ESMF_STAGGERLOC_CENTER, &
-                    farrayPtr=x2dPtr, &
+                    farrayPtr=obj%x2dCentrePtr, &
                     exclusiveLBound=obj%iBegCentre, exclusiveUBound=obj%iEndCentre, rc=rc)
         call ESMF_GridGetCoord(obj%egrid, coordDim=2, staggerloc=ESMF_STAGGERLOC_CENTER, &
-                    farrayPtr=y2dPtr, rc=rc)
+                    farrayPtr=obj%y2dCentrePtr, rc=rc)
         do j0 = obj%iBegCentre(2), obj%iEndCentre(2)
             j1 = j0 + 1
             do i0 = obj%iBegCentre(1), obj%iEndCentre(1)
                 i1 = i0 + 1
-                x2dPtr(i0, j0) = 0.25_8*(x2dCorner(i0, j0) + x2dCorner(i1, j0) + x2dCorner(i1, j1) + x2dCorner(i0, j1))
-                y2dPtr(i0, j0) = 0.25_8*(y2dCorner(i0, j0) + y2dCorner(i1, j0) + y2dCorner(i1, j1) + y2dCorner(i0, j1))
+                obj%x2dCentrePtr(i0, j0) = 0.25_8*(x2dCorner(i0, j0) + x2dCorner(i1, j0) + x2dCorner(i1, j1) + x2dCorner(i0, j1))
+                obj%y2dCentrePtr(i0, j0) = 0.25_8*(y2dCorner(i0, j0) + y2dCorner(i1, j0) + y2dCorner(i1, j1) + y2dCorner(i0, j1))
             enddo
         enddo
 
