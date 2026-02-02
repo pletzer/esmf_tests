@@ -13,7 +13,7 @@ module distgrid_mod
 contains
 
     subroutine distgrid_new(obj, x2dCorner, y2dCorner, regDecomp)
-        type(distgrid_type) :: obj
+        type(distgrid_type), intent(inout) :: obj
         real(8), intent(in) :: x2dCorner(:, :), y2dCorner(:, :)
         integer :: regDecomp(:)
 
@@ -69,7 +69,7 @@ contains
     end subroutine
 
     subroutine distgrid_del(obj)
-        type(distgrid_type) :: obj
+        type(distgrid_type), intent(inout) :: obj
         call ESMF_GridDestroy(obj%egrid)
     end subroutine
 
@@ -83,36 +83,35 @@ module distfield_mod
     type distfield_type
         character(len=32) :: name
         type(distgrid_type), pointer :: dgridPtr
-        real(8), pointer :: dataPtr(:, :)
+        real(8), pointer :: localDataPtr(:, :)
         type(ESMF_Field) :: efield
     end type
 
 contains
 
-    subroutine distfield_new(obj, name, dgrid, staggerloc, data)
-        type(distfield_type) :: obj
+    subroutine distfield_new(obj, name, dgrid, staggerloc, localData)
+        type(distfield_type), intent(inout) :: obj
         character(len=*), intent(in) :: name
         type(distgrid_type), target, intent(in) :: dgrid
         type(ESMF_StaggerLoc), intent(in) :: staggerloc
-        real(8), intent(in) :: data(:, :)
+        real(8), intent(in) :: localData(:, :)
         integer :: iBeg(2), iEnd(2)
 
         integer :: i, j, rc
-        real(8), pointer :: dataPtr
 
         obj%name = name
         obj%dgridPtr => dgrid
 
         obj%efield = ESMF_FieldCreate(dgrid%egrid, name=name, staggerloc=staggerloc, typekind=ESMF_TYPEKIND_R8, rc=rc)
-        call ESMF_FieldGet(obj%efield, farrayPtr=obj%dataPtr, rc=rc)
+        call ESMF_FieldGet(obj%efield, farrayPtr=obj%localDataPtr, rc=rc)
 
         ! set the data
-        obj%dataPtr(:,:) = data(:,:)
+        obj%localDataPtr(:,:) = localData(:,:)
 
     end subroutine
 
     subroutine distfield_del(obj)
-        type(distfield_type) :: obj
+        type(distfield_type), intent(inout) :: obj
         call ESMF_FieldDestroy(obj%efield)
     end subroutine
 
