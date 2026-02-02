@@ -26,6 +26,8 @@ program esmf_2d_dist_grid_example
   real(dp) :: dx, dy
   real(dp), pointer :: x2dCorner(:,:), y2dCorner(:,:)
   real(dp), pointer :: x2dCentre(:,:), y2dCentre(:,:)
+  type(ESMF_Field) :: field
+  real(dp), pointer :: fieldPtr(:, :)
 
   ! MPI info
   integer(I4) :: pet, npets
@@ -91,19 +93,6 @@ program esmf_2d_dist_grid_example
   dx = (xmax - xmin) / real(nx, dp)
   dy = (ymax - ymin) / real(ny, dp)
 
-  ! cell centres
-  call ESMF_GridGetCoord(grid, coordDim=1, staggerloc=ESMF_STAGGERLOC_CENTER, &
-                         farrayPtr=x2dCentre, &
-                         exclusiveLBound=iBeg, exclusiveUBound=iEnd, rc=rc)
-  call ESMF_GridGetCoord(grid, coordDim=2, staggerloc=ESMF_STAGGERLOC_CENTER, &
-                         farrayPtr=y2dCentre)
-  do j = iBeg(2), iEnd(2)
-     do i = iBeg(1), iEnd(1)
-        x2dCentre(i,j) = xmin + (i - 0.5_dp)*dx
-        y2dCentre(i,j) = ymin + (j - 0.5_dp)*dy
-     end do
-  end do
-
   ! nodes
   call ESMF_GridGetCoord(grid, coordDim=1, staggerloc=ESMF_STAGGERLOC_CORNER, &
                          farrayPtr=x2dCorner, &
@@ -117,11 +106,39 @@ program esmf_2d_dist_grid_example
      end do
   end do
 
+  ! cell centres
+  call ESMF_GridGetCoord(grid, coordDim=1, staggerloc=ESMF_STAGGERLOC_CENTER, &
+                         farrayPtr=x2dCentre, &
+                         exclusiveLBound=iBeg, exclusiveUBound=iEnd, rc=rc)
+  call ESMF_GridGetCoord(grid, coordDim=2, staggerloc=ESMF_STAGGERLOC_CENTER, &
+                         farrayPtr=y2dCentre)
+  do j = iBeg(2), iEnd(2)
+     do i = iBeg(1), iEnd(1)
+        x2dCentre(i,j) = xmin + (i - 0.5_dp)*dx
+        y2dCentre(i,j) = ymin + (j - 0.5_dp)*dy
+     end do
+  end do
+
   !-----------------------------------------------------------------
   ! Print ownership
   !-----------------------------------------------------------------
   !write(*,'(A,I3,A,2I5,A,I25,A)') "PET ", pet, " owns i=[", iBeg(1), iEnd(1), "] j=[", iBeg(2), iEnd(2), "]"
   print*, 'PET: ', pet, ' iBeg = ', iBeg, ' iEnd = ', iEnd
+
+  !-----------------------------------------------------------------
+  ! Field
+  !-----------------------------------------------------------------
+  ! Create a 2D field on the grid, cell-centered
+  field = ESMF_FieldCreate(grid, name='myField', staggerloc=ESMF_STAGGERLOC_CENTER, typekind=ESMF_TYPEKIND_R8, rc=rc)
+  ! Get pointer to local field array and local bounds
+  call ESMF_FieldGet(field, farrayPtr=fieldPtr, rc=rc)
+  if (rc /= ESMF_SUCCESS) stop "ESMF_FieldGet failed"
+
+   do j = iBeg(2), iEnd(2)
+     do i = iBeg(1), iEnd(1)
+      fieldPtr(i,j) = x2dCentre(i, j) + y2dCentre(i, j)  ! example initialization
+     end do
+   end do
 
   !-----------------------------------------------------------------
   ! Finalize
