@@ -87,29 +87,43 @@ module distfield_mod
         type(distgrid_type), pointer :: dgridPtr
         real(8), pointer :: localDataPtr(:, :)
         type(ESMF_Field) :: efield
+        type(ESMF_StaggerLoc) :: staggerLoc
     end type
 
 contains
 
-    subroutine distfield_new(obj, name, dgrid, staggerloc, localData)
+    subroutine distfield_new(obj, name, dgrid, staggerLoc)
         type(distfield_type), intent(inout) :: obj
         character(len=*), intent(in) :: name
         type(distgrid_type), target, intent(in) :: dgrid
-        type(ESMF_StaggerLoc), intent(in) :: staggerloc
-        real(8), intent(in) :: localData(:, :)
-        integer :: iBeg(2), iEnd(2)
+        type(ESMF_StaggerLoc), intent(in) :: staggerLoc
 
         integer :: i, j, rc
 
         obj%name = name
         obj%dgridPtr => dgrid
+        obj%staggerLoc = staggerLoc
 
         obj%efield = ESMF_FieldCreate(dgrid%egrid, name=name, staggerloc=staggerloc, typekind=ESMF_TYPEKIND_R8, rc=rc)
-        call ESMF_FieldGet(obj%efield, farrayPtr=obj%localDataPtr, rc=rc)
+    end subroutine
 
-        ! set the data
-        obj%localDataPtr(:,:) = localData(:,:)
+    subroutine distfield_getLocalBounds(obj, iBeg, iEnd)
+        type(distfield_type), intent(inout) :: obj
+        integer, intent(out) :: iBeg(:), iEnd(:)
+        if (obj%staggerLoc == ESMF_STAGGERLOC_CENTER) then
+            iBeg = obj%dgridPtr%iBegCentre
+            iEnd = obj%dgridPtr%iEndCentre
+        else if (obj%staggerLoc == ESMF_STAGGERLOC_CENTER) then
+            iBeg = obj%dgridPtr%iBegCorner
+            iEnd = obj%dgridPtr%iEndCorner
+        end if
+    end subroutine
 
+    subroutine distfield_getLocalDataPtr(obj, localDataPtr)
+        type(distfield_type), intent(inout) :: obj
+        real(8), pointer, intent(out) :: localDataPtr(:, :)
+        integer :: rc
+        call ESMF_FieldGet(obj%efield, farrayPtr=localDataPtr, rc=rc)
     end subroutine
 
     subroutine distfield_del(obj)
