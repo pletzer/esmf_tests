@@ -96,26 +96,98 @@ module OCN
     type(ESMF_State)        :: importState, exportState
     type(ESMF_TimeInterval) :: stabilityTimeStep
     type(ESMF_Field)        :: field_sst, field_pmsl, field_rsns
-    type(ESMF_Grid)         :: grid
-    real(ESMF_KIND_R8), pointer  :: xPtr(:, :), yPtr(:, :), sstPtr(:, :)
-    integer :: i, j
-    real(8) :: x, y
-    integer :: lb(2), ub(2)
+
+    integer :: nx, ny, i, j
+    integer :: lbCorner(2), ubCorner(2), lbCenter(2), ubCenter(2)
+    real(ESMF_KIND_R8), pointer :: xCornerPtr(:,:), yCornerPtr(:,:)
+    real(ESMF_KIND_R8), pointer :: xCenterPtr(:,:), yCenterPtr(:,:)
+    real(ESMF_KIND_R8), pointer :: sstPtr(:,:)
+    real(ESMF_KIND_R8) :: x, y
+    type(ESMF_Grid) :: grid
 
     rc = ESMF_SUCCESS
+
+    ! Define grid size
+    nx = 10
+    ny = 12
+
+    ! Create the grid with both CENTER and CORNER stagger locations
+    grid = ESMF_GridCreateNoPeriDim( &
+          regDecomp=(/1, 2/), &
+          coordDep1=(/1,2/), & ! 1st coord is 2D and depends on both Grid dim
+          coordDep2=(/1,2/), &
+          indexflag=ESMF_INDEX_GLOBAL, &
+          maxIndex=(/nx, ny/), &
+          rc=rc)
+    if (rc /= ESMF_SUCCESS) stop 'ESMF_GridCreateNoPeriDim failed'
+
+    call ESMF_GridAddCoord(grid, staggerloc=ESMF_STAGGERLOC_CORNER, rc=rc)
+    if (rc /= ESMF_SUCCESS) stop 'ESMF_GridAddCoord CORNER failed'
+
+    call ESMF_GridAddCoord(grid, staggerloc=ESMF_STAGGERLOC_CENTER, rc=rc)
+    if (rc /= ESMF_SUCCESS) stop 'ESMF_GridAddCoord CENTER failed'
+
+    !--------------------------------------------------------
+    ! First: get bounds for all coordinates and stagger locations
+    !--------------------------------------------------------
+    call ESMF_GridGetCoordBounds(grid, 1, staggerLoc=ESMF_STAGGERLOC_CORNER, &
+                                exclusiveLBound=lbCorner, exclusiveUBound=ubCorner, rc=rc)
+    call ESMF_GridGetCoordBounds(grid, 2, staggerLoc=ESMF_STAGGERLOC_CORNER, &
+                                exclusiveLBound=lbCorner, exclusiveUBound=ubCorner, rc=rc)
+
+    call ESMF_GridGetCoordBounds(grid, 1, staggerLoc=ESMF_STAGGERLOC_CENTER, &
+                                exclusiveLBound=lbCenter, exclusiveUBound=ubCenter, rc=rc)
+    call ESMF_GridGetCoordBounds(grid, 2, staggerLoc=ESMF_STAGGERLOC_CENTER, &
+                                exclusiveLBound=lbCenter, exclusiveUBound=ubCenter, rc=rc)
+
+    print*,'*** OCN corner bounds ', lbCorner, ubCorner
+    print*,'*** OCN centre bounds ', lbCenter, ubCenter
+
+    !--------------------------------------------------------
+    ! Then: get the actual coordinate arrays
+    !--------------------------------------------------------
+    call ESMF_GridGetCoord(grid, 1, staggerLoc=ESMF_STAGGERLOC_CORNER, &
+                          farrayPtr=xCornerPtr, &
+                          rc=rc)
+    print*,'rc = ', rc
+    if (rc /= ESMF_SUCCESS) stop 'ESMF_GridGetCoord xCorner failed'
+
+    call ESMF_GridGetCoord(grid, 2, staggerLoc=ESMF_STAGGERLOC_CORNER, &
+                          farrayPtr=yCornerPtr, &
+                          rc=rc)
+    if (rc /= ESMF_SUCCESS) stop 'ESMF_GridGetCoord yCorner failed'
+
+    call ESMF_GridGetCoord(grid, 1, staggerLoc=ESMF_STAGGERLOC_CENTER, &
+                          farrayPtr=xCenterPtr, &
+                          rc=rc)
+    if (rc /= ESMF_SUCCESS) stop 'ESMF_GridGetCoord xCenter failed'
+
+    call ESMF_GridGetCoord(grid, 2, staggerLoc=ESMF_STAGGERLOC_CENTER, &
+                          farrayPtr=yCenterPtr, &
+                          rc=rc)
+    if (rc /= ESMF_SUCCESS) stop 'ESMF_GridGetCoord yCenter failed'
+
+    !--------------------------------------------------------
+    ! Coordinates can now be filled safely, e.g. uniform
+    !--------------------------------------------------------
+    do j = lbCorner(2), ubCorner(2)
+        do i = lbCorner(1), ubCorner(1)
+            xCornerPtr(i,j) = (i-1) * (1._ESMF_KIND_R8/nx)
+            yCornerPtr(i,j) = (j-1) * (2._ESMF_KIND_R8/ny)
+        enddo
+    enddo
+
+    do j = lbCenter(2), ubCenter(2)
+        do i = lbCenter(1), ubCenter(1)
+            xCenterPtr(i,j) = 0.25_8*(xCornerPtr(i,j) + xCornerPtr(i+1,j) + xCornerPtr(i+1,j+1) + xCornerPtr(i,j+1))
+            yCenterPtr(i,j) = 0.25_8*(yCornerPtr(i,j) + yCornerPtr(i+1,j) + yCornerPtr(i+1,j+1) + yCornerPtr(i,j+1))
+        enddo
+    enddo
+
 
     ! query for importState and exportState
     call NUOPC_ModelGet(model, importState=importState, &
       exportState=exportState, rc=rc)
-
-    ! create a Grid object for Fields
-    grid = ESMF_GridCreateNoPeriDimUfrm(maxIndex=(/80, 40/), &
-      minCornerCoord=(/0._ESMF_KIND_R8, 0._ESMF_KIND_R8/), &
-      maxCornerCoord=(/100._ESMF_KIND_R8, 200._ESMF_KIND_R8/), &
-      coordSys=ESMF_COORDSYS_CART, &
-      staggerLocList=(/ESMF_STAGGERLOC_CENTER, ESMF_STAGGERLOC_CORNER/), & ! conservative requires both center and corner
-      regDecomp=(/1, 2/), & ! ESMF_GRIDDECOMPFLAG_SINGLE, &   ! <--- force serial layout
-      rc=rc)
 
     ! importable field: air_pressure_at_sea_level
     field_pmsl = ESMF_FieldCreate(name="pmsl", grid=grid, &
@@ -134,28 +206,18 @@ module OCN
       staggerloc=ESMF_STAGGERLOC_CENTER, typekind=ESMF_TYPEKIND_R8, rc=rc)
 
     ! initialize
-    call ESMF_FieldFill(field_sst, dataFillScheme="const", const1=292.0_8, rc=rc)
-    ! call ESMF_GridGetCoord(grid, coordDim=1, &
-    !   staggerLoc=ESMF_STAGGERLOC_CENTER, farrayPtr=xPtr, &
-    !   exclusiveLBound=lb, exclusiveUBound=ub, &
-    !   rc=rc)
-    ! call ESMF_GridGetCoord(grid, coordDim=2, &
-    !   staggerLoc=ESMF_STAGGERLOC_CENTER, farrayPtr=yPtr, &
-    !   rc=rc)
+    call ESMF_FieldGet(field=field_sst, farrayPtr=sstPtr, rc=rc)
 
-    ! call ESMF_FieldGet(field=field_sst, farrayPtr=sstPtr, rc=rc)
-    ! print *,'>>>>>>>>>>>> lb = ', lb, ' ub = ', ub
-
-    ! do j = lb(2), ub(2)
-    !   do i = lb(1), ub(1)
-    !     x = xPtr(i, j)
-    !     y = yPtr(i, j)
-    !     print *,'>>>>>>OCN Realize: i=', i, ' j=', j, ' x=', x, ' y=', y !, ' sstPtr=', sstPtr(i, j)
-    !     sstPtr(i, j) = x + y
-    !   enddo
-    ! enddo
-    
-
+    do j = lbCenter(2), ubCenter(2)
+      do i = lbCenter(1), ubCenter(1)
+        x = xCenterPtr(i, j)
+        y = yCenterPtr(i, j)
+        sstPtr(i, j) = x + y
+        print *,'>>>>>>OCN Realize: i=', i, ' j=', j, ' x=', x, ' y=', y, ' sstPtr=', sstPtr(i, j)
+      enddo
+    enddo
+    !call ESMF_FieldFill(field_sst, dataFillScheme="const", const1=292.0_8, rc=rc)
+  
     call NUOPC_Realize(exportState, field=field_sst, rc=rc)
 
   end subroutine

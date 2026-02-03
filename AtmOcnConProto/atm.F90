@@ -82,60 +82,125 @@ module ATM
   !-----------------------------------------------------------------------------
 
   subroutine Realize(model, rc)
-    ! Create grid, fields and advertise import/export
-
     type(ESMF_GridComp)  :: model
     integer, intent(out) :: rc
 
     ! local variables
     type(ESMF_State)        :: importState, exportState
+    type(ESMF_TimeInterval) :: stabilityTimeStep
     type(ESMF_Field)        :: field_sst, field_pmsl, field_rsns
-    type(ESMF_Grid)         :: gridIn
-    type(ESMF_Grid)         :: gridOut
+
+    integer :: nx, ny, i, j
+    integer :: lbCorner(2), ubCorner(2), lbCenter(2), ubCenter(2)
+    real(ESMF_KIND_R8), pointer :: xCornerPtr(:,:), yCornerPtr(:,:)
+    real(ESMF_KIND_R8), pointer :: xCenterPtr(:,:), yCenterPtr(:,:)
+    real(ESMF_KIND_R8), pointer :: sstPtr(:,:)
+    real(ESMF_KIND_R8) :: x, y
+    type(ESMF_Grid) :: grid
 
     rc = ESMF_SUCCESS
+
+    ! Define grid size
+    nx = 12
+    ny = 10
+
+    ! Create the grid with both CENTER and CORNER stagger locations
+    grid = ESMF_GridCreateNoPeriDim( &
+          regDecomp=(/1, 2/), &
+          coordDep1=(/1,2/), & ! 1st coord is 2D and depends on both Grid dim
+          coordDep2=(/1,2/), &
+          indexflag=ESMF_INDEX_GLOBAL, &
+          maxIndex=(/nx, ny/), &
+          rc=rc)
+    if (rc /= ESMF_SUCCESS) stop 'ESMF_GridCreateNoPeriDim failed'
+
+    call ESMF_GridAddCoord(grid, staggerloc=ESMF_STAGGERLOC_CORNER, rc=rc)
+    if (rc /= ESMF_SUCCESS) stop 'ESMF_GridAddCoord CORNER failed'
+
+    call ESMF_GridAddCoord(grid, staggerloc=ESMF_STAGGERLOC_CENTER, rc=rc)
+    if (rc /= ESMF_SUCCESS) stop 'ESMF_GridAddCoord CENTER failed'
+
+    !--------------------------------------------------------
+    ! First: get bounds for all coordinates and stagger locations
+    !--------------------------------------------------------
+    call ESMF_GridGetCoordBounds(grid, 1, staggerLoc=ESMF_STAGGERLOC_CORNER, &
+                                exclusiveLBound=lbCorner, exclusiveUBound=ubCorner, rc=rc)
+    call ESMF_GridGetCoordBounds(grid, 2, staggerLoc=ESMF_STAGGERLOC_CORNER, &
+                                exclusiveLBound=lbCorner, exclusiveUBound=ubCorner, rc=rc)
+
+    call ESMF_GridGetCoordBounds(grid, 1, staggerLoc=ESMF_STAGGERLOC_CENTER, &
+                                exclusiveLBound=lbCenter, exclusiveUBound=ubCenter, rc=rc)
+    call ESMF_GridGetCoordBounds(grid, 2, staggerLoc=ESMF_STAGGERLOC_CENTER, &
+                                exclusiveLBound=lbCenter, exclusiveUBound=ubCenter, rc=rc)
+
+    print*,'*** ATM corner bounds ', lbCorner, ubCorner
+    print*,'*** ATM centre bounds ', lbCenter, ubCenter
+
+    !--------------------------------------------------------
+    ! Then: get the actual coordinate arrays
+    !--------------------------------------------------------
+    call ESMF_GridGetCoord(grid, 1, staggerLoc=ESMF_STAGGERLOC_CORNER, &
+                          farrayPtr=xCornerPtr, &
+                          rc=rc)
+    print*,'rc = ', rc
+    if (rc /= ESMF_SUCCESS) stop 'ESMF_GridGetCoord xCorner failed'
+
+    call ESMF_GridGetCoord(grid, 2, staggerLoc=ESMF_STAGGERLOC_CORNER, &
+                          farrayPtr=yCornerPtr, &
+                          rc=rc)
+    if (rc /= ESMF_SUCCESS) stop 'ESMF_GridGetCoord yCorner failed'
+
+    call ESMF_GridGetCoord(grid, 1, staggerLoc=ESMF_STAGGERLOC_CENTER, &
+                          farrayPtr=xCenterPtr, &
+                          rc=rc)
+    if (rc /= ESMF_SUCCESS) stop 'ESMF_GridGetCoord xCenter failed'
+
+    call ESMF_GridGetCoord(grid, 2, staggerLoc=ESMF_STAGGERLOC_CENTER, &
+                          farrayPtr=yCenterPtr, &
+                          rc=rc)
+    if (rc /= ESMF_SUCCESS) stop 'ESMF_GridGetCoord yCenter failed'
+
+    !--------------------------------------------------------
+    ! Coordinates can now be filled safely, e.g. uniform
+    !--------------------------------------------------------
+    do j = lbCorner(2), ubCorner(2)
+        do i = lbCorner(1), ubCorner(1)
+            xCornerPtr(i,j) = (i-1) * (1._ESMF_KIND_R8/nx)
+            yCornerPtr(i,j) = (j-1) * (2._ESMF_KIND_R8/ny)
+        enddo
+    enddo
+
+    do j = lbCenter(2), ubCenter(2)
+        do i = lbCenter(1), ubCenter(1)
+            xCenterPtr(i,j) = 0.25_8*(xCornerPtr(i,j) + xCornerPtr(i+1,j) + xCornerPtr(i+1,j+1) + xCornerPtr(i,j+1))
+            yCenterPtr(i,j) = 0.25_8*(yCornerPtr(i,j) + yCornerPtr(i+1,j) + yCornerPtr(i+1,j+1) + yCornerPtr(i,j+1))
+        enddo
+    enddo
+
 
     ! query for importState and exportState
     call NUOPC_ModelGet(model, importState=importState, &
       exportState=exportState, rc=rc)
 
-    ! create a Grid object for Fields
-    gridIn = ESMF_GridCreateNoPeriDimUfrm(maxIndex=(/4, 8/), &
-      minCornerCoord=(/0._ESMF_KIND_R8, 0._ESMF_KIND_R8/), &
-      maxCornerCoord=(/100._ESMF_KIND_R8, 200._ESMF_KIND_R8/), &
-      coordSys=ESMF_COORDSYS_CART, &
-      staggerLocList=(/ESMF_STAGGERLOC_CENTER, ESMF_STAGGERLOC_CORNER/), &
-      rc=rc)
-
-    gridOut = gridIn ! for now out same as in
-
-    ! importable field: sea_surface_temperature
-    field_sst = ESMF_FieldCreate(name="sst", grid=gridIn, &
-      typekind=ESMF_TYPEKIND_R8, & ! default is center
-      rc=rc)
-
-    call NUOPC_Realize(importState, field=field_sst, rc=rc)
-
-    ! exportable field: air_pressure_at_sea_level
-    field_pmsl = ESMF_FieldCreate(name="pmsl", grid=gridOut, &
-      typekind=ESMF_TYPEKIND_R8, rc=rc)
-
-    ! fill in default values
-    call ESMF_FieldFill(field_pmsl, dataFillScheme="const", const1=101000.0_8, rc=rc)
+    ! importable field: air_pressure_at_sea_level
+    field_pmsl = ESMF_FieldCreate(name="pmsl", grid=grid, &
+      staggerloc=ESMF_STAGGERLOC_CENTER, typekind=ESMF_TYPEKIND_R8, rc=rc)
 
     call NUOPC_Realize(exportState, field=field_pmsl, rc=rc)
 
-    ! exportable field: surface_net_downward_shortwave_flux
-    field_rsns = ESMF_FieldCreate(name="rsns", grid=gridOut, &
-      typekind=ESMF_TYPEKIND_R8, rc=rc)
-
-    ! fill in default values
-    call ESMF_FieldFill(field_rsns, dataFillScheme="const", const1=300.0_8, rc=rc)
+    ! importable field: surface_net_downward_shortwave_flux
+    field_rsns = ESMF_FieldCreate(name="rsns", grid=grid, &
+      staggerloc=ESMF_STAGGERLOC_CENTER, typekind=ESMF_TYPEKIND_R8, rc=rc)
 
     call NUOPC_Realize(exportState, field=field_rsns, rc=rc)
 
-  end subroutine
+    ! exportable field: sea_surface_temperature
+    field_sst = ESMF_FieldCreate(name="sst", grid=grid, &
+      staggerloc=ESMF_STAGGERLOC_CENTER, typekind=ESMF_TYPEKIND_R8, rc=rc)
+ 
+    call NUOPC_Realize(importState, field=field_sst, rc=rc)
 
+  end subroutine
   !-----------------------------------------------------------------------------
 
   subroutine Run(model, rc)
