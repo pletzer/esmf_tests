@@ -34,11 +34,11 @@ contains
         npoints = (ubCorner(1) - lbCorner(1) + 1) * (ubCorner(2) - lbCorner(2) + 1)
         ncells = (ubCenter(1) - lbCenter(1) + 1) * (ubCenter(2) - lbCenter(2) + 1)
 
-        open(file=filename, status='new', action='write', newunit=iu)
+        open(file=filename, status='replace', action='write', newunit=iu)
         write(iu, *) 'vtk DataFile Version 2.0'
         write(iu, *) 'data'
         write(iu, *) 'ASCII'
-        write(iu, *) 'DATSET STRUCTURED_GRID'
+        write(iu, *) 'DATASET STRUCTURED_GRID'
         write(iu, *) 'DIMENSIONS ', ubCorner(1) - lbCorner(1) + 1, ' ', ubCorner(2) - lbCorner(2) + 1, ' ', 1
         write(iu, *) 'POINTS ', npoints, ' DOUBLE'
         do j = lbCorner(2), ubCorner(2)

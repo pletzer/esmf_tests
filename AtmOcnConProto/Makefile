@@ -48,7 +48,7 @@ ESMF_INTERNAL_MPIRUN := $(shell echo $(ESMF_INTERNAL_MPIRUN))
 
 
 # -----------------------------------------------------------------------------
-esmApp: esmApp.o esm.o atm.o ocn.o conn.o
+esmApp: esmApp.o esm.o atm.o ocn.o conn.o vtk_mod.o
 	$(ESMF_F90LINKER) $(ESMF_F90LINKOPTS) $(ESMF_F90LINKPATHS) $(ESMF_F90LINKRPATHS) -o $@ $^ $(ESMF_F90ESMFLINKLIBS)
 
 test_distgrid.o: dist_mod.o

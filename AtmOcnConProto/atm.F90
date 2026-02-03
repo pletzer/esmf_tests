@@ -18,6 +18,8 @@ module ATM
   use NUOPC
   use NUOPC_Model, &
     modelSS    => SetServices
+  use vtk_mod
+  use mpi
 
   implicit none
 
@@ -244,8 +246,12 @@ module ATM
     real(8), pointer :: sstPtr(:, :)
     character(len=160)          :: msgString
     integer :: i, j
+    character(len=32) :: filename
+    integer :: pe, comm
+    type(ESMF_VM) :: compVM
 
     rc = ESMF_SUCCESS
+
 
     ! query for clock, importState and exportState
     call NUOPC_ModelGet(model, modelClock=clock, importState=importState, &
@@ -270,13 +276,23 @@ module ATM
     ! query for importState
     call NUOPC_ModelGet(model, importState=importState, rc=rc)
     call ESMF_StateGet(importState, itemName='sst', field=field_sst, rc=rc)
-    call ESMF_FieldGet(field_sst, farrayPtr=sstPtr, rc=rc)
 
-    do j = lbound(sstPtr, 2), ubound(sstPtr, 2)
-      do i = lbound(sstPtr, 1), ubound(sstPtr, 1)
-        print*,'i = ', i, ' j = ', j, ' sst = ', sstPtr(i, j)
-      enddo
-    enddo
+    ! Get the VM associated with the component
+    call ESMF_GridCompGet(model, vm=compVM, rc=rc)
+  
+    ! Get the specific MPI communicator
+    call ESMF_VMGet(compVM, mpiCommunicator=comm, rc=rc)
+
+    call MPI_Comm_rank(comm, pe, rc)
+    write(filename, '(A,I1,A)') 'atm_', pe, '.vtk'
+    call write_vtk(field_sst, trim(filename))
+    ! call ESMF_FieldGet(field_sst, farrayPtr=sstPtr, rc=rc)
+
+    ! do j = lbound(sstPtr, 2), ubound(sstPtr, 2)
+    !   do i = lbound(sstPtr, 1), ubound(sstPtr, 1)
+    !     print*,'i = ', i, ' j = ', j, ' sst = ', sstPtr(i, j)
+    !   enddo
+    ! enddo
 
 
   end subroutine
