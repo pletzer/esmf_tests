@@ -59,6 +59,8 @@ test_distgrid.x: test_distgrid.o dist_mod.o
 # module dependencies:
 esmApp.o: esm.o 
 esm.o: atm.o ocn.o conn.o
+atm.o: vtk_mod.o
+ocn.o: vtk_mod.o
 
 # -----------------------------------------------------------------------------
 # -----------------------------------------------------------------------------
