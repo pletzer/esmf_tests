@@ -284,8 +284,8 @@ module ATM
     call ESMF_VMGet(compVM, mpiCommunicator=comm, rc=rc)
 
     call MPI_Comm_rank(comm, pe, rc)
-    write(filename, '(A,I1,A)') 'atm_', pe, '.vtk'
-    call write_vtk(field_sst, trim(filename))
+    write(filename, '(A,I4.4,A)') 'atm_', pe, '.vtk'
+    call write_vtk(field_sst, filename)
     ! call ESMF_FieldGet(field_sst, farrayPtr=sstPtr, rc=rc)
 
     ! do j = lbound(sstPtr, 2), ubound(sstPtr, 2)

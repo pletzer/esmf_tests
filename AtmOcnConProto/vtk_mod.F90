@@ -8,56 +8,44 @@ contains
         type(ESMF_Field), intent(in) :: field
         character(len=*), intent(in) :: filename
 
-        integer :: i, j, k, lbCorner(2), ubCorner(2), lbCenter(2), ubCenter(2), rc, iu, npoints, ncells
+        integer :: i, j, lbCenter(2), ubCenter(2), rc, iu, npoints
         type(ESMF_Grid) :: grid
         type(ESMF_StaggerLoc) :: staggerLoc
-        real(8), pointer :: xCornerPtr(:, :), yCornerPtr(:, :), dataPtr(:, :)
-        real(8) :: z
+        real(8), pointer :: xCenterPtr(:, :), yCenterPtr(:, :), dataPtr(:, :)
 
 
         call ESMF_FieldGet(field, grid=grid, rc=rc)
         call ESMF_FieldGet(field, staggerloc=staggerLoc, rc=rc)
 
-        call ESMF_GridGetCoordBounds(grid, 1, staggerLoc=ESMF_STAGGERLOC_CORNER, &
-                exclusiveLBound=lbCorner, exclusiveUBound=ubCorner, rc=rc)
-        call ESMF_GridGetCoordBounds(grid, 2, staggerLoc=ESMF_STAGGERLOC_CORNER, &
-                exclusiveLBound=lbCorner, exclusiveUBound=ubCorner, rc=rc)
-
-        call ESMF_GridGetCoordBounds(grid, 1, staggerLoc=ESMF_STAGGERLOC_CENTER, &
+        do i = 1, 2
+        call ESMF_GridGetCoordBounds(grid, coordDim=i, staggerLoc=ESMF_STAGGERLOC_CENTER, &
                 exclusiveLBound=lbCenter, exclusiveUBound=ubCenter, rc=rc)
-        call ESMF_GridGetCoordBounds(grid, 2, staggerLoc=ESMF_STAGGERLOC_CENTER, &
-                exclusiveLBound=lbCenter, exclusiveUBound=ubCenter, rc=rc)
+        enddo
 
-        call ESMF_GridGetCoord(grid, 1, staggerLoc=ESMF_STAGGERLOC_CORNER, farrayPtr=xCornerPtr, rc=rc)
-        call ESMF_GridGetCoord(grid, 2, staggerLoc=ESMF_STAGGERLOC_CORNER, farrayPtr=yCornerPtr, rc=rc)
+        call ESMF_GridGetCoord(grid, coordDim=1, staggerLoc=ESMF_STAGGERLOC_CENTER, farrayPtr=xCenterPtr, rc=rc)
+        call ESMF_GridGetCoord(grid, coordDim=2, staggerLoc=ESMF_STAGGERLOC_CENTER, farrayPtr=yCenterPtr, rc=rc)
 
         call ESMF_FieldGet(field, farrayPtr=dataPtr, rc=rc)
 
-        npoints = (ubCorner(1) - lbCorner(1) + 1) * (ubCorner(2) - lbCorner(2) + 1)
-        ncells = (ubCenter(1) - lbCenter(1) + 1) * (ubCenter(2) - lbCenter(2) + 1)
+        npoints = (ubCenter(1) - lbCenter(1) + 1) * (ubCenter(2) - lbCenter(2) + 1)
 
         open(file=filename, status='replace', action='write', newunit=iu)
-        write(iu, *) 'vtk DataFile Version 2.0'
-        write(iu, *) 'data'
-        write(iu, *) 'ASCII'
-        write(iu, *) 'DATASET STRUCTURED_GRID'
+        write(iu, '(A)') '# vtk DataFile Version 3.0'
+        write(iu, '(A)') 'data'
+        write(iu, '(A)') 'ASCII'
+        write(iu, '(A)') 'DATASET STRUCTURED_GRID'
         ! need at least two z levels to have a single cell layer
-        write(iu, *) 'DIMENSIONS ', ubCorner(1) - lbCorner(1) + 1, ' ', ubCorner(2) - lbCorner(2) + 1, ' ', 2
-        ! 2 because we have to nodal layers
-        write(iu, *) 'POINTS ', 2*npoints, ' DOUBLE'
-        ! 3d even though we're 2d
-        do k = 1, 2
-            z = (k - 1)*1
-            do j = lbCorner(2), ubCorner(2)
-                do i = lbCorner(1), ubCorner(1)
-                    write(iu, '(E20.12, A, E20.12, A, E20.12)') xCornerPtr(i, j), ' ', yCornerPtr(i, j), ' ', z
-                enddo
+        write(iu, '(A,I4,A,I4,A,I4)') 'DIMENSIONS ', ubCenter(1) - lbCenter(1) + 1, ' ', ubCenter(2) - lbCenter(2) + 1, ' ', 1
+        write(iu, '(A,I4,A)') 'POINTS ', npoints, ' DOUBLE'
+        do j = lbCenter(2), ubCenter(2)
+            do i = lbCenter(1), ubCenter(1)
+                write(iu, '(E20.12, A, E20.12, A, E20.12)') xCenterPtr(i, j), ' ', yCenterPtr(i, j), ' ', 0.0
             enddo
         enddo
 
-        write(iu, *) 'CELL_DATA ', ncells
-        write(iu, *) 'SCALARS data double 1'
-        write(iu, *) 'LOOKUP_TABLE default'
+        write(iu, '(A,I4)') 'POINT_DATA ', npoints
+        write(iu, '(A)') 'SCALARS data double 1'
+        write(iu, '(A)') 'LOOKUP_TABLE default'
         do j = lbCenter(2), ubCenter(2)
             do i = lbCenter(1), ubCenter(1)
                 write(iu, '(E20.12,A)') dataPtr(i, j)
