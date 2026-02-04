@@ -103,14 +103,14 @@ module ATM
     rc = ESMF_SUCCESS
 
     ! Define grid size
-    nx = 12
-    ny = 10
+    nx = 8
+    ny = 6
 
     ! Create the grid with both CENTER and CORNER stagger locations
     grid = ESMF_GridCreateNoPeriDim( &
           regDecomp=(/1, 2/), &
-          coordDep1=(/1,2/), & ! 1st coord is 2D and depends on both Grid dim
-          coordDep2=(/1,2/), &
+          coordDep1=(/1, 2/), & ! 1st coord is 2D and depends on both Grid dim
+          coordDep2=(/1, 2/), &
           indexflag=ESMF_INDEX_GLOBAL, &
           maxIndex=(/nx, ny/), &
           rc=rc)
@@ -123,16 +123,16 @@ module ATM
     if (rc /= ESMF_SUCCESS) stop 'ESMF_GridAddCoord CENTER failed'
 
     !--------------------------------------------------------
-    ! First: get bounds for all coordinates and stagger locations
+    ! Get bounds for all coordinates and stagger locations
     !--------------------------------------------------------
-    call ESMF_GridGetCoordBounds(grid, 1, staggerLoc=ESMF_STAGGERLOC_CORNER, &
+    call ESMF_GridGetCoordBounds(grid, coordDim=1, staggerLoc=ESMF_STAGGERLOC_CORNER, &
                                 exclusiveLBound=lbCorner, exclusiveUBound=ubCorner, rc=rc)
-    call ESMF_GridGetCoordBounds(grid, 2, staggerLoc=ESMF_STAGGERLOC_CORNER, &
+    call ESMF_GridGetCoordBounds(grid, coordDim=2, staggerLoc=ESMF_STAGGERLOC_CORNER, &
                                 exclusiveLBound=lbCorner, exclusiveUBound=ubCorner, rc=rc)
 
-    call ESMF_GridGetCoordBounds(grid, 1, staggerLoc=ESMF_STAGGERLOC_CENTER, &
+    call ESMF_GridGetCoordBounds(grid, coordDim=1, staggerLoc=ESMF_STAGGERLOC_CENTER, &
                                 exclusiveLBound=lbCenter, exclusiveUBound=ubCenter, rc=rc)
-    call ESMF_GridGetCoordBounds(grid, 2, staggerLoc=ESMF_STAGGERLOC_CENTER, &
+    call ESMF_GridGetCoordBounds(grid, coordDim=2, staggerLoc=ESMF_STAGGERLOC_CENTER, &
                                 exclusiveLBound=lbCenter, exclusiveUBound=ubCenter, rc=rc)
 
     print*,'*** ATM corner bounds ', lbCorner, ubCorner

@@ -8,10 +8,11 @@ contains
         type(ESMF_Field), intent(in) :: field
         character(len=*), intent(in) :: filename
 
-        integer :: i, j, lbCorner(2), ubCorner(2), lbCenter(2), ubCenter(2), rc, iu, npoints, ncells
+        integer :: i, j, k, lbCorner(2), ubCorner(2), lbCenter(2), ubCenter(2), rc, iu, npoints, ncells
         type(ESMF_Grid) :: grid
         type(ESMF_StaggerLoc) :: staggerLoc
         real(8), pointer :: xCornerPtr(:, :), yCornerPtr(:, :), dataPtr(:, :)
+        real(8) :: z
 
 
         call ESMF_FieldGet(field, grid=grid, rc=rc)
@@ -21,6 +22,7 @@ contains
                 exclusiveLBound=lbCorner, exclusiveUBound=ubCorner, rc=rc)
         call ESMF_GridGetCoordBounds(grid, 2, staggerLoc=ESMF_STAGGERLOC_CORNER, &
                 exclusiveLBound=lbCorner, exclusiveUBound=ubCorner, rc=rc)
+
         call ESMF_GridGetCoordBounds(grid, 1, staggerLoc=ESMF_STAGGERLOC_CENTER, &
                 exclusiveLBound=lbCenter, exclusiveUBound=ubCenter, rc=rc)
         call ESMF_GridGetCoordBounds(grid, 2, staggerLoc=ESMF_STAGGERLOC_CENTER, &
@@ -39,13 +41,20 @@ contains
         write(iu, *) 'data'
         write(iu, *) 'ASCII'
         write(iu, *) 'DATASET STRUCTURED_GRID'
-        write(iu, *) 'DIMENSIONS ', ubCorner(1) - lbCorner(1) + 1, ' ', ubCorner(2) - lbCorner(2) + 1, ' ', 1
-        write(iu, *) 'POINTS ', npoints, ' DOUBLE'
-        do j = lbCorner(2), ubCorner(2)
-            do i = lbCorner(1), ubCorner(1)
-                write(iu, '(E20.12, A, E20.12, A)') xCornerPtr(i, j), ' ', yCornerPtr(i, j), ' 0.0'
+        ! need at least two z levels to have a single cell layer
+        write(iu, *) 'DIMENSIONS ', ubCorner(1) - lbCorner(1) + 1, ' ', ubCorner(2) - lbCorner(2) + 1, ' ', 2
+        ! 2 because we have to nodal layers
+        write(iu, *) 'POINTS ', 2*npoints, ' DOUBLE'
+        ! 3d even though we're 2d
+        do k = 1, 2
+            z = (k - 1)*1
+            do j = lbCorner(2), ubCorner(2)
+                do i = lbCorner(1), ubCorner(1)
+                    write(iu, '(E20.12, A, E20.12, A, E20.12)') xCornerPtr(i, j), ' ', yCornerPtr(i, j), ' ', z
+                enddo
             enddo
         enddo
+
         write(iu, *) 'CELL_DATA ', ncells
         write(iu, *) 'SCALARS data double 1'
         write(iu, *) 'LOOKUP_TABLE default'
@@ -56,8 +65,6 @@ contains
         enddo
 
         close(iu)
-
-
 
     end subroutine
 

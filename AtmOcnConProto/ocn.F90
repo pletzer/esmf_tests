@@ -108,36 +108,38 @@ module OCN
     rc = ESMF_SUCCESS
 
     ! Define grid size
-    nx = 10
-    ny = 12
+    nx = 6
+    ny = 8
 
     ! Create the grid with both CENTER and CORNER stagger locations
     grid = ESMF_GridCreateNoPeriDim( &
           regDecomp=(/1, 2/), &
-          coordDep1=(/1,2/), & ! 1st coord is 2D and depends on both Grid dim
-          coordDep2=(/1,2/), &
+          coordDep1=(/1, 2/), & ! 1st coord is 2D and depends on both Grid dim
+          coordDep2=(/1, 2/), &
           indexflag=ESMF_INDEX_GLOBAL, &
-          maxIndex=(/nx, ny/), &
+          maxIndex=(/nx, ny/), & ! number of cells?
           rc=rc)
     if (rc /= ESMF_SUCCESS) stop 'ESMF_GridCreateNoPeriDim failed'
 
     call ESMF_GridAddCoord(grid, staggerloc=ESMF_STAGGERLOC_CORNER, rc=rc)
     if (rc /= ESMF_SUCCESS) stop 'ESMF_GridAddCoord CORNER failed'
-
     call ESMF_GridAddCoord(grid, staggerloc=ESMF_STAGGERLOC_CENTER, rc=rc)
     if (rc /= ESMF_SUCCESS) stop 'ESMF_GridAddCoord CENTER failed'
 
     !--------------------------------------------------------
-    ! First: get bounds for all coordinates and stagger locations
+    ! Get bounds for all coordinates and stagger locations
     !--------------------------------------------------------
-    call ESMF_GridGetCoordBounds(grid, 1, staggerLoc=ESMF_STAGGERLOC_CORNER, &
+    ! Need to call ESMF_GridGetCoordBounds for each coordinate to fill in the bounds along
+    ! each axis
+    ! Fill in corner bounds
+    call ESMF_GridGetCoordBounds(grid, coordDim=1, staggerLoc=ESMF_STAGGERLOC_CORNER, &
                                 exclusiveLBound=lbCorner, exclusiveUBound=ubCorner, rc=rc)
-    call ESMF_GridGetCoordBounds(grid, 2, staggerLoc=ESMF_STAGGERLOC_CORNER, &
+    call ESMF_GridGetCoordBounds(grid, coordDim=2, staggerLoc=ESMF_STAGGERLOC_CORNER, &
                                 exclusiveLBound=lbCorner, exclusiveUBound=ubCorner, rc=rc)
-
-    call ESMF_GridGetCoordBounds(grid, 1, staggerLoc=ESMF_STAGGERLOC_CENTER, &
+    ! Fill in center bounds
+    call ESMF_GridGetCoordBounds(grid, coordDim=1, staggerLoc=ESMF_STAGGERLOC_CENTER, &
                                 exclusiveLBound=lbCenter, exclusiveUBound=ubCenter, rc=rc)
-    call ESMF_GridGetCoordBounds(grid, 2, staggerLoc=ESMF_STAGGERLOC_CENTER, &
+    call ESMF_GridGetCoordBounds(grid, coordDim=2, staggerLoc=ESMF_STAGGERLOC_CENTER, &
                                 exclusiveLBound=lbCenter, exclusiveUBound=ubCenter, rc=rc)
 
     print*,'*** OCN corner bounds ', lbCorner, ubCorner
