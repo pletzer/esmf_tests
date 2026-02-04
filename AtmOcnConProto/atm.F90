@@ -97,14 +97,18 @@ module ATM
     real(ESMF_KIND_R8), pointer :: xCornerPtr(:,:), yCornerPtr(:,:)
     real(ESMF_KIND_R8), pointer :: xCenterPtr(:,:), yCenterPtr(:,:)
     real(ESMF_KIND_R8), pointer :: sstPtr(:,:)
-    real(ESMF_KIND_R8) :: x, y
+    real(ESMF_KIND_R8) :: x, y, xmin, xmax, ymin, ymax
     type(ESMF_Grid) :: grid
 
     rc = ESMF_SUCCESS
 
-    ! Define grid size
-    nx = 8
-    ny = 6
+    ! Define grid 
+    nx = 32
+    ny = 16
+    xmin = 0.0_8
+    xmax = 1.0_8
+    ymin = 0.0_8
+    ymax = 1.0_8
 
     ! Create the grid with both CENTER and CORNER stagger locations
     grid = ESMF_GridCreateNoPeriDim( &
@@ -167,15 +171,15 @@ module ATM
     !--------------------------------------------------------
     do j = lbCorner(2), ubCorner(2)
         do i = lbCorner(1), ubCorner(1)
-            xCornerPtr(i,j) = (i-1) * (1._ESMF_KIND_R8/nx)
-            yCornerPtr(i,j) = (j-1) * (2._ESMF_KIND_R8/ny)
+            xCornerPtr(i,j) = xmin + (i-1) * (xmax - xmin)/ real(nx, 8)
+            yCornerPtr(i,j) = ymin + (j-1) * (ymax - ymin)/ real(ny, 8)
         enddo
     enddo
 
     do j = lbCenter(2), ubCenter(2)
         do i = lbCenter(1), ubCenter(1)
-            xCenterPtr(i,j) = 0.25_8*(xCornerPtr(i,j) + xCornerPtr(i+1,j) + xCornerPtr(i+1,j+1) + xCornerPtr(i,j+1))
-            yCenterPtr(i,j) = 0.25_8*(yCornerPtr(i,j) + yCornerPtr(i+1,j) + yCornerPtr(i+1,j+1) + yCornerPtr(i,j+1))
+            xCenterPtr(i,j) = xmin + (i - 0.5_8) * (xmax - xmin)/ real(nx, 8)
+            yCenterPtr(i,j) = ymin + (j - 0.5_8) * (ymax - ymin)/ real(ny, 8)
         enddo
     enddo
 
