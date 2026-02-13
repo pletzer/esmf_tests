@@ -23,6 +23,8 @@ module OCN
 
   private
 
+  real(8), parameter :: xmin = 0._8, xmax = 1._8, ymin = 0._8, ymax = 1._8
+
   public SetServices
 
   !-----------------------------------------------------------------------------
@@ -102,7 +104,7 @@ module OCN
     real(ESMF_KIND_R8), pointer :: xCornerPtr(:,:), yCornerPtr(:,:)
     real(ESMF_KIND_R8), pointer :: xCenterPtr(:,:), yCenterPtr(:,:)
     real(ESMF_KIND_R8), pointer :: sstPtr(:,:)
-    real(ESMF_KIND_R8) :: x, y, xmin, xmax, ymin, ymax, pi
+    real(ESMF_KIND_R8) :: x, y, pi
     type(ESMF_Grid) :: grid
 
     rc = ESMF_SUCCESS
@@ -112,10 +114,6 @@ module OCN
     ! Define the grid
     nx = 16
     ny = 32
-    xmin = 0.0_8
-    xmax = 1.0_8
-    ymin = 0.0_8
-    ymax = 1.0_8
 
     ! Create the grid with both CENTER and CORNER stagger locations
     grid = ESMF_GridCreateNoPeriDim( &
@@ -266,12 +264,48 @@ module OCN
     type(ESMF_Time)             :: currTime
     type(ESMF_TimeInterval)     :: timeStep
     character(len=160)          :: msgString
+    integer :: istep = 0
+    type(ESMF_Field) :: field_sst
+    type(ESMF_Grid) :: grid
+    real(8), pointer :: sstPtr(:, :), xCenterPtr(:, :), yCenterPtr(:, :)
+    integer :: i, j, lbCenter(2), ubCenter(2)
+    real(8) :: pi, x, y
+
 
     rc = ESMF_SUCCESS
+    pi = acos(-1._8)
+
+    istep = istep + 1
 
     ! query for clock, importState and exportState
     call NUOPC_ModelGet(model, modelClock=clock, importState=importState, &
       exportState=exportState, rc=rc)
+
+    ! update the export SST
+    call ESMF_StateGet(exportState, itemName='sst', field=field_sst, rc=rc)
+    call ESMF_FieldGet(field_sst, farrayPtr=sstPtr, rc=rc)
+    call ESMF_FieldGet(field_sst, grid=grid, rc=rc)
+
+    ! Fill in center bounds
+    call ESMF_GridGetCoord(grid, coordDim=1, staggerLoc=ESMF_STAGGERLOC_CENTER, &
+                              farrayPtr=xCenterPtr, rc=rc)
+    call ESMF_GridGetCoord(grid, coordDim=2, staggerloc=ESMF_STAGGERLOC_CENTER, &
+                              farrayPtr=yCenterPtr, rc=rc)
+    call ESMF_GridGetCoordBounds(grid, coordDim=1, staggerLoc=ESMF_STAGGERLOC_CENTER, &
+                                exclusiveLBound=lbCenter, exclusiveUBound=ubCenter, rc=rc)
+    call ESMF_GridGetCoordBounds(grid, coordDim=2, staggerLoc=ESMF_STAGGERLOC_CENTER, &
+                                exclusiveLBound=lbCenter, exclusiveUBound=ubCenter, rc=rc)
+
+    ! set the SST 
+    do j = lbCenter(2), ubCenter(2)
+      do i = lbCenter(1), ubCenter(1)
+        x = xCenterPtr(i, j)
+        y = yCenterPtr(i, j)
+        ! move the field in time
+        sstPtr(i, j) = sin(pi*(x - istep*0.05_8)/(xmax - xmin)) * cos((pi*y - 1.2_8 - istep*0.07_8)/(ymax - ymin))
+      enddo
+    enddo
+
 
     ! HERE THE MODEL ADVANCES: currTime -> currTime + timeStep
 

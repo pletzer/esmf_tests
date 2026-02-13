@@ -252,10 +252,13 @@ module ATM
     integer :: i, j
     character(len=32) :: filename
     integer :: pe, comm
+    integer :: istep = 0
+    type(ESMF_Time) :: currTime, startTime
     type(ESMF_VM) :: compVM
 
     rc = ESMF_SUCCESS
 
+    istep = istep + 1
 
     ! query for clock, importState and exportState
     call NUOPC_ModelGet(model, modelClock=clock, importState=importState, &
@@ -267,6 +270,7 @@ module ATM
     ! its timeStep is equal to the parent timeStep. As a consequence the
     ! currTime + timeStep is equal to the stopTime of the internal Clock
     ! for this call of the Advance() routine.
+
     call ESMF_ClockPrint(clock, options="currTime", &
       preString="------>Advancing ATM from: ", unit=msgString, rc=rc)
 
@@ -288,7 +292,7 @@ module ATM
     call ESMF_VMGet(compVM, mpiCommunicator=comm, rc=rc)
 
     call MPI_Comm_rank(comm, pe, rc)
-    write(filename, '(A,I4.4,A)') 'atm_', pe, '.vtk'
+    write(filename, '(A,I4.4,A,I4.4,A)') 'atm_', pe, 'pe_', istep,'.vtk'
     call write_vtk(field_sst, filename)
     ! call ESMF_FieldGet(field_sst, farrayPtr=sstPtr, rc=rc)
 
