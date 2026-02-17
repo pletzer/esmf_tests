@@ -43,37 +43,18 @@ module Driver
 
     ! derive from NUOPC_Driver
     call NUOPC_CompDerive(driver, driverSS, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
 
     ! specialize driver
     call NUOPC_CompSpecialize(driver, specLabel=label_SetModelServices, &
       specRoutine=SetModelServices, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-    call NUOPC_CompSpecialize(driver, specLabel=label_SetRunSequence, &
+   call NUOPC_CompSpecialize(driver, specLabel=label_SetRunSequence, &
       specRoutine=SetRunSequence, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
+
     call NUOPC_CompSpecialize(driver, specLabel=label_ModifyCplLists, &
       specRoutine=ModifyCplLists, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
 
     ! set driver verbosity
     call NUOPC_CompAttributeSet(driver, name="Verbosity", value="high", rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
 
   end subroutine
 
