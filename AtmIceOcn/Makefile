@@ -64,7 +64,7 @@ distclean: dust clean
 
 run: app
 	rm -f PET*.ESMF_LogFile *.nc *.stdout
-	mpiexec -n 6 ./app
+	mpiexec -n 8 ./app
 	cat PET0.ESMF_LogFile
 
 info:

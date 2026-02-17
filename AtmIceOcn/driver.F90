@@ -110,31 +110,11 @@ module Driver
 
     ! set the model clock
     call ESMF_TimeIntervalSet(timeStep, m=15, rc=rc) ! 15 minute steps
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      call ESMF_Finalize(endflag=ESMF_END_ABORT)
     call ESMF_TimeSet(startTime, yy=2010, mm=6, dd=1, h=0, m=0, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      call ESMF_Finalize(endflag=ESMF_END_ABORT)
     call ESMF_TimeSet(stopTime, yy=2010, mm=6, dd=1, h=1, m=0, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      call ESMF_Finalize(endflag=ESMF_END_ABORT)
     internalClock = ESMF_ClockCreate(name="Application Clock", &
       timeStep=timeStep, startTime=startTime, stopTime=stopTime, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      call ESMF_Finalize(endflag=ESMF_END_ABORT)
     call ESMF_GridCompSet(driver, clock=internalClock, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
 
   end subroutine
 
@@ -152,8 +132,6 @@ module Driver
 
     ! query the driver for its name
     call ESMF_GridCompGet(driver, name=name, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, file=trim(name)//":"//__FILE__)) return  ! bail out
 
     ! set up free format run sequence
     runSeqFF = NUOPC_FreeFormatCreate(stringList=(/ &
