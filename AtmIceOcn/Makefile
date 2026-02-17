@@ -62,6 +62,11 @@ clean:
 	rm -f app *.o *.mod
 distclean: dust clean
 
+run: app
+	rm -f PET*.ESMF_LogFile *.nc *.stdout
+	mpiexec -n 6 ./app
+	cat PET0.ESMF_LogFile
+
 info:
 	@echo ==================================================================
 	@echo ESMFMKFILE=$(ESMFMKFILE)
@@ -71,6 +76,3 @@ info:
 
 edit:
 	nedit app.F90 driver.F90 mediator.F90 modelA.F90 modelB.F90 &
-
-run:
-	$(ESMF_INTERNAL_MPIRUN) -np 4 ./app
