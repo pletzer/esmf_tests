@@ -14,9 +14,7 @@ module CON
   ! Connector Component.
   !-----------------------------------------------------------------------------
 
-  ! Enabling the followng macro, i.e. setting it to WITHSTATEUSE_on,
-  ! will activate sections of code that demonstrate how
-  ! the "state" member inside the NUOPC_Connector is used. The
+  ! The
   ! example creates an FieldBundle that's a duplicate of dstFields inside the
   ! connector, and precomputes two RouteHandles. The first is a Regrid, while
   ! the second is simply an identity operation using FieldRedist() to show the
