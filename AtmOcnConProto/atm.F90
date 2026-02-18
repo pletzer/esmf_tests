@@ -269,6 +269,10 @@ module ATM
     integer :: istep = 0
     type(ESMF_Time) :: currTime, startTime
     type(ESMF_VM) :: compVM
+    real(8) :: chksum
+    real(8), pointer :: dataPtr(:, :)
+    integer :: lbCenter(2), ubCenter(2)
+    type(ESMF_Grid) :: grid
 
     rc = ESMF_SUCCESS
 
@@ -308,6 +312,22 @@ module ATM
     call MPI_Comm_rank(comm, pe, rc)
     write(filename, '(A,I4.4,A,I4.4,A)') 'atm_', pe, 'pe_', istep,'.vtk'
     call write_vtk(field_sst, filename)
+
+    chksum = 0
+    call ESMF_FieldGet(field_sst, farrayPtr=dataPtr, rc=rc)
+    call ESMF_FieldGet(field_sst, grid=grid, rc=rc)
+
+    ! Fill in center bounds
+    do i = 1, 2
+      call ESMF_GridGetCoordBounds(grid, coordDim=i, staggerLoc=ESMF_STAGGERLOC_CENTER, &
+                              exclusiveLBound=lbCenter, exclusiveUBound=ubCenter, rc=rc)
+    enddo
+    do j = lbCenter(2), ubCenter(2)
+      do i = lbCenter(1), ubCenter(1)
+        chksum = chksum + abs(dataPtr(i, j))
+      enddo
+    enddo
+    print*,'ATM step=', istep, ' pe=', pe, ' chksum sst = ', chksum
 
   end subroutine
 
