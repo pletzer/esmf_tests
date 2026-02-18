@@ -96,11 +96,13 @@ module ATM
     integer :: lbCorner(2), ubCorner(2), lbCenter(2), ubCenter(2)
     real(ESMF_KIND_R8), pointer :: xCornerPtr(:,:), yCornerPtr(:,:)
     real(ESMF_KIND_R8), pointer :: xCenterPtr(:,:), yCenterPtr(:,:)
-    real(ESMF_KIND_R8), pointer :: sstPtr(:,:)
+    real(ESMF_KIND_R8), pointer :: pmslPtr(:,:)
     real(ESMF_KIND_R8) :: x, y, xmin, xmax, ymin, ymax
     type(ESMF_Grid) :: grid
+    real(8) :: pi
 
     rc = ESMF_SUCCESS
+    pi = acos(-1._8)
 
     ! Define grid 
     nx = 32
@@ -191,6 +193,18 @@ module ATM
     ! exportable field: air_pressure_at_sea_level
     field_pmsl = ESMF_FieldCreate(name="pmsl", grid=grid, &
       staggerloc=ESMF_STAGGERLOC_CENTER, typekind=ESMF_TYPEKIND_R8, rc=rc)
+
+    ! initialize
+    call ESMF_FieldGet(field=field_pmsl, farrayPtr=pmslPtr, rc=rc)
+
+    ! set the PMSL
+    do j = lbCenter(2), ubCenter(2)
+      do i = lbCenter(1), ubCenter(1)
+        x = xCenterPtr(i, j)
+        y = yCenterPtr(i, j)
+        pmslPtr(i, j) = cos(pi*x/(xmax - xmin)) * sin((pi*y - 1.2_8)/(ymax - ymin))
+      enddo
+    enddo
 
     call NUOPC_Realize(exportState, field=field_pmsl, rc=rc)
 
