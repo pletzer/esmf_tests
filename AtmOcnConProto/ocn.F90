@@ -275,6 +275,8 @@ module OCN
     character(len=32) :: filename
     integer :: pe, comm
     type(ESMF_Field) :: field_pmsl
+    real(8) :: chksum
+    real(8), pointer :: dataPtr(:, :)
 
     rc = ESMF_SUCCESS
     pi = acos(-1._8)
@@ -345,6 +347,15 @@ module OCN
     call MPI_Comm_rank(comm, pe, rc)
     write(filename, '(A,I4.4,A,I4.4,A)') 'ocn_', pe, 'pe_', istep,'.vtk'
     call write_vtk(field_pmsl, filename)
+
+    chksum = 0
+    call ESMF_FieldGet(field_pmsl, farrayPtr=dataPtr, rc=rc)
+    do j = lbCenter(2), ubCenter(2)
+      do i = lbCenter(1), ubCenter(1)
+        chksum = chksum + abs(dataPtr(i, j))
+      enddo
+    enddo
+    print*,'OCN step=', istep, ' pe=', pe, ' chksum pmsl = ', chksum
 
 
   end subroutine

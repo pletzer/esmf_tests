@@ -78,6 +78,8 @@ module CON
     call NUOPC_ConnectorGet(connector, srcFields=srcFields, &
       dstFields=dstFields, state=state, rc=rc)
 
+    
+
     ! replicate dstFields FieldBundle in order to provide intermediate Fields
     ! - query number of fields in the FieldBundle
     call ESMF_FieldBundleGet(dstFields, fieldCount=fieldCount, rc=rc)
@@ -97,21 +99,26 @@ module CON
       call ESMF_FieldGet(fields(i), grid=grid, typekind=typekind, rc=rc)
       field = ESMF_FieldCreate(grid, typekind, rc=rc)
       call ESMF_FieldBundleAdd(interDstFields, (/field/), rc=rc)
-   enddo
+    enddo
     deallocate(fields)
     ! add interDstFields to the state member
     call ESMF_StateAdd(state, (/interDstFields/), rc=rc)
+
     ! compute the first RouteHandle for srcFields->interDstFields (Regrid)
     call ESMF_FieldBundleRegridStore(srcFields, interDstFields, &
       !unmappedaction=ESMF_UNMAPPEDACTION_IGNORE, &
       regridMethod=ESMF_REGRIDMETHOD_CONSERVE, &
       routehandle=rh1, rc=rc)
     call ESMF_RouteHandleSet(rh1, name="src2interDstRH", rc=rc)
-   ! compute the second RouteHandle for interDstFields->dstFields (Redist)
+
+    ! compute the second RouteHandle for interDstFields->dstFields (Redist). This 
+    ! is necessary because interDstFields are on a different communicator than
+    ! dstFields
     call ESMF_FieldBundleRedistStore(interDstFields, dstFields, &
       routehandle=rh2, rc=rc)
     call ESMF_RouteHandleSet(rh2, name="interDst2dstRH", rc=rc)
     ! add rh1, rh2 to the state member
+    
     call ESMF_StateAdd(state, (/rh1, rh2/), rc=rc)
 
   end subroutine
