@@ -188,19 +188,19 @@ module ATM
     call NUOPC_ModelGet(model, importState=importState, &
       exportState=exportState, rc=rc)
 
-    ! importable field: air_pressure_at_sea_level
+    ! exportable field: air_pressure_at_sea_level
     field_pmsl = ESMF_FieldCreate(name="pmsl", grid=grid, &
       staggerloc=ESMF_STAGGERLOC_CENTER, typekind=ESMF_TYPEKIND_R8, rc=rc)
 
     call NUOPC_Realize(exportState, field=field_pmsl, rc=rc)
 
-    ! importable field: surface_net_downward_shortwave_flux
+    ! exportable field: surface_net_downward_shortwave_flux
     field_rsns = ESMF_FieldCreate(name="rsns", grid=grid, &
       staggerloc=ESMF_STAGGERLOC_CENTER, typekind=ESMF_TYPEKIND_R8, rc=rc)
 
     call NUOPC_Realize(exportState, field=field_rsns, rc=rc)
 
-    ! exportable field: sea_surface_temperature
+    ! importable field: sea_surface_temperature
     field_sst = ESMF_FieldCreate(name="sst", grid=grid, &
       staggerloc=ESMF_STAGGERLOC_CENTER, typekind=ESMF_TYPEKIND_R8, rc=rc)
  
@@ -294,14 +294,6 @@ module ATM
     call MPI_Comm_rank(comm, pe, rc)
     write(filename, '(A,I4.4,A,I4.4,A)') 'atm_', pe, 'pe_', istep,'.vtk'
     call write_vtk(field_sst, filename)
-    ! call ESMF_FieldGet(field_sst, farrayPtr=sstPtr, rc=rc)
-
-    ! do j = lbound(sstPtr, 2), ubound(sstPtr, 2)
-    !   do i = lbound(sstPtr, 1), ubound(sstPtr, 1)
-    !     print*,'i = ', i, ' j = ', j, ' sst = ', sstPtr(i, j)
-    !   enddo
-    ! enddo
-
 
   end subroutine
 

@@ -90,6 +90,7 @@ module ESM
     call NUOPC_DriverAddComp(driver, "ATM", atmSS, &
       petList=petList, &
       comp=child, rc=rc)
+
     deallocate(petList)
     verbosity = 0 ! reset
     verbosity = ibset(verbosity,0)  ! log basic intro/extro and indentation

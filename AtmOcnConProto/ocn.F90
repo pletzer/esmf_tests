@@ -18,6 +18,7 @@ module OCN
   use NUOPC
   use NUOPC_Model, &
     modelSS    => SetServices
+  use vtk_mod
 
   implicit none
 
@@ -270,7 +271,10 @@ module OCN
     real(8), pointer :: sstPtr(:, :), xCenterPtr(:, :), yCenterPtr(:, :)
     integer :: i, j, lbCenter(2), ubCenter(2)
     real(8) :: pi, x, y
-
+    type(ESMF_VM) :: compVM
+    character(len=32) :: filename
+    integer :: pe, comm
+    type(ESMF_Field) :: field_pmsl
 
     rc = ESMF_SUCCESS
     pi = acos(-1._8)
@@ -327,6 +331,21 @@ module OCN
       preString="---------------------> to: ", unit=msgString, rc=rc)
 
     call ESMF_LogWrite(msgString, ESMF_LOGMSG_INFO, rc=rc)
+
+    ! query for importState
+    call NUOPC_ModelGet(model, importState=importState, rc=rc)
+    call ESMF_StateGet(importState, itemName='pmsl', field=field_pmsl, rc=rc)
+
+    ! Get the VM associated with the component
+    call ESMF_GridCompGet(model, vm=compVM, rc=rc)
+  
+    ! Get the specific MPI communicator
+    call ESMF_VMGet(compVM, mpiCommunicator=comm, rc=rc)
+
+    call MPI_Comm_rank(comm, pe, rc)
+    write(filename, '(A,I4.4,A,I4.4,A)') 'ocn_', pe, 'pe_', istep,'.vtk'
+    call write_vtk(field_pmsl, filename)
+
 
   end subroutine
 
