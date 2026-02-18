@@ -21,7 +21,6 @@ module CON
   ! connector, and precomputes two RouteHandles. The first is a Regrid, while
   ! the second is simply an identity operation using FieldRedist() to show the
   ! principle.
-#define WITHSTATEUSE_on
 
   use ESMF
   use NUOPC
@@ -50,12 +49,12 @@ module CON
     ! specialize connector
     call NUOPC_CompSpecialize(connector, specLabel=label_ComputeRouteHandle, &
       specRoutine=ComputeRH, rc=rc)
-#ifdef WITHSTATEUSE_on
+
     call NUOPC_CompSpecialize(connector, specLabel=label_ExecuteRouteHandle, &
       specRoutine=ExecuteRH, rc=rc)
+
     call NUOPC_CompSpecialize(connector, specLabel=label_ReleaseRouteHandle, &
       specRoutine=ReleaseRH, rc=rc)
-#endif
 
   end subroutine
 
@@ -68,7 +67,6 @@ module CON
     ! local variables
     type(ESMF_State)              :: state
     type(ESMF_FieldBundle)        :: dstFields, srcFields
-#ifdef WITHSTATEUSE_on
     type(ESMF_FieldBundle)        :: interDstFields
     type(ESMF_Field), allocatable :: fields(:)
     integer                       :: fieldCount, i
@@ -76,16 +74,12 @@ module CON
     type(ESMF_TypeKind_Flag)      :: typekind
     type(ESMF_Field)              :: field
     type(ESMF_RouteHandle)        :: rh1, rh2
-#else
-    type(ESMF_RouteHandle)        :: rh
-#endif
 
     rc = ESMF_SUCCESS
 
     call NUOPC_ConnectorGet(connector, srcFields=srcFields, &
       dstFields=dstFields, state=state, rc=rc)
 
-#ifdef WITHSTATEUSE_on
     ! replicate dstFields FieldBundle in order to provide intermediate Fields
     ! - query number of fields in the FieldBundle
     call ESMF_FieldBundleGet(dstFields, fieldCount=fieldCount, rc=rc)
@@ -121,18 +115,10 @@ module CON
     call ESMF_RouteHandleSet(rh2, name="interDst2dstRH", rc=rc)
     ! add rh1, rh2 to the state member
     call ESMF_StateAdd(state, (/rh1, rh2/), rc=rc)
-#else
-    ! specialize with Redist, instead of the default Regrid
-    call ESMF_FieldBundleRedistStore(srcFields, dstFields, &
-      routehandle=rh, rc=rc)
-    call NUOPC_ConnectorSet(connector, rh=rh, rc=rc)
-#endif
 
   end subroutine
 
   !-----------------------------------------------------------------------------
-
-#ifdef WITHSTATEUSE_on
 
   subroutine ExecuteRH(connector, rc)
     type(ESMF_CplComp)  :: connector
@@ -203,8 +189,6 @@ module CON
     ! care of them.
 
   end subroutine
-
-#endif
 
   !-----------------------------------------------------------------------------
 
