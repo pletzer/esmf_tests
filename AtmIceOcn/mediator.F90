@@ -254,22 +254,10 @@ module Mediator
     ! query for importState and exportState
     call NUOPC_MediatorGet(mediator, importState=importState, &
       exportState=exportState, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
 
     call adjustAcceptedGeom(importState, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
 
     call adjustAcceptedGeom(exportState, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
 
     contains ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -297,10 +285,6 @@ module Mediator
       if (present(rc)) rc = ESMF_SUCCESS
 
       call ESMF_StateGet(state, stateIntent=stateIntent, rc=rc)
-      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-        line=__LINE__, &
-        file=__FILE__)) &
-        return  ! bail out
 
       if (stateIntent==ESMF_STATEINTENT_EXPORT) then
         transferActionAttr="ProducerTransferAction"
@@ -316,149 +300,72 @@ module Mediator
       endif
 
       call ESMF_StateGet(state, nestedFlag=.true., itemCount=itemCount, rc=rc)
-      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-        line=__LINE__, &
-        file=__FILE__)) &
-        return  ! bail out
 
       allocate(itemNameList(itemCount), itemTypeList(itemCount))
 
       call ESMF_StateGet(state, nestedFlag=.true., &
         itemNameList=itemNameList, itemTypeList=itemTypeList, rc=rc)
-      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-        line=__LINE__, &
-        file=__FILE__)) &
-        return  ! bail out
 
       do item=1, itemCount
         if (itemTypeList(item)==ESMF_STATEITEM_FIELD) then
           ! this is a field -> get more info
           call ESMF_StateGet(state, field=field, itemName=itemNameList(item), &
             rc=rc)
-          if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-            line=__LINE__, &
-            file=__FILE__)) &
-            return  ! bail out
           call NUOPC_GetAttribute(field, name=transferActionAttr, &
             value=transferAction, rc=rc)
-          if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-            line=__LINE__, &
-            file=__FILE__)) &
-            return  ! bail out
-          if (trim(transferAction)=="accept") then
+         if (trim(transferAction)=="accept") then
             ! the Connector instructed the Mediator to accept geom object
             ! -> find out which type geom object the field holds
             call ESMF_FieldGet(field, geomtype=geomtype, rc=rc)
-            if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-              line=__LINE__, &
-              file=__FILE__)) &
-              return  ! bail out
             if (geomtype==ESMF_GEOMTYPE_GRID) then
               ! empty field holds a Grid with DistGrid
               call ESMF_FieldGet(field, grid=grid, rc=rc)
-              if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-                line=__LINE__, &
-                file=__FILE__)) &
-                return  ! bail out
               ! access the DistGrid
               call ESMF_GridGet(grid, distgrid=distgrid, rc=rc)
-              if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-                line=__LINE__, &
-                file=__FILE__)) &
-                return  ! bail out
               ! Create a custom DistGrid, based on the minIndex, maxIndex of the
               ! accepted DistGrid, but with a default regDecomp for the current VM
               ! that leads to 1DE/PET.
               ! get dimCount and tileCount
               call ESMF_DistGridGet(distgrid, dimCount=dimCount, &
                 tileCount=tileCount, rc=rc)
-              if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-                line=__LINE__, &
-                file=__FILE__)) &
-                return  ! bail out
               ! allocate minIndexPTile and maxIndexPTile accord. to dimCount and tileCount
               allocate(minIndexPTile(dimCount, tileCount), &
                 maxIndexPTile(dimCount, tileCount))
               ! get minIndex and maxIndex arrays
               call ESMF_DistGridGet(distgrid, minIndexPTile=minIndexPTile, &
                 maxIndexPTile=maxIndexPTile, rc=rc)
-              if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-                line=__LINE__, &
-                file=__FILE__)) &
-                return  ! bail out
               ! create the new DistGrid with the same minIndexPTile and maxIndexPTile,
               ! but with a default regDecompPTile
               distgrid = ESMF_DistGridCreate(minIndexPTile=minIndexPTile, &
                 maxIndexPTile=maxIndexPTile, rc=rc)
-              if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-                line=__LINE__, &
-                file=__FILE__)) &
-                return  ! bail out
               ! Create a new Grid on the new DistGrid and swap it in the Field
               grid = ESMF_GridCreate(distgrid, rc=rc)
-              if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-                line=__LINE__, &
-                file=__FILE__)) &
-                return  ! bail out
               call ESMF_FieldEmptySet(field, grid=grid, rc=rc)
-              if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-                line=__LINE__, &
-                file=__FILE__)) &
-                return  ! bail out
               ! local clean-up
               deallocate(minIndexPTile, maxIndexPTile)
             elseif (geomtype==ESMF_GEOMTYPE_MESH) then
               ! empty field holds a Mesh with DistGrid
               call ESMF_FieldGet(field, mesh=mesh, rc=rc)
-              if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-                line=__LINE__, &
-                file=__FILE__)) &
-                return  ! bail out
-              ! access the DistGrid
               call ESMF_MeshGet(mesh, elementDistgrid=distgrid, rc=rc)
-              if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-                line=__LINE__, &
-                file=__FILE__)) &
-                return  ! bail out
               ! Create a custom DistGrid, based on the minIndex, maxIndex of the
               ! accepted DistGrid, but with a default regDecomp for the current VM
               ! that leads to 1DE/PET.
               ! get dimCount and tileCount
               call ESMF_DistGridGet(distgrid, dimCount=dimCount, &
                 tileCount=tileCount, rc=rc)
-              if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-                line=__LINE__, &
-                file=__FILE__)) &
-                return  ! bail out
               ! allocate minIndexPTile and maxIndexPTile accord. to dimCount and tileCount
               allocate(minIndexPTile(dimCount, tileCount), &
                 maxIndexPTile(dimCount, tileCount))
               ! get minIndex and maxIndex arrays
               call ESMF_DistGridGet(distgrid, minIndexPTile=minIndexPTile, &
                 maxIndexPTile=maxIndexPTile, rc=rc)
-              if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-                line=__LINE__, &
-                file=__FILE__)) &
-                return  ! bail out
               ! create the new DistGrid with the same minIndexPTile and maxIndexPTile,
               ! but with a default regDecompPTile
               distgrid = ESMF_DistGridCreate(minIndexPTile=minIndexPTile, &
                 maxIndexPTile=maxIndexPTile, rc=rc)
-              if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-                line=__LINE__, &
-                file=__FILE__)) &
-                return  ! bail out
               ! Create a new Grid on the new DistGrid and swap it in the Field
               mesh = ESMF_MeshCreate(distgrid, distgrid, rc=rc)
-              if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-                line=__LINE__, &
-                file=__FILE__)) &
-                return  ! bail out
               call ESMF_FieldEmptySet(field, mesh=mesh, rc=rc)
-              if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-                line=__LINE__, &
-                file=__FILE__)) &
-                return  ! bail out
               ! local clean-up
               deallocate(minIndexPTile, maxIndexPTile)
             else
@@ -494,22 +401,10 @@ module Mediator
     ! query for importState and exportState
     call NUOPC_MediatorGet(mediator, importState=importState, &
       exportState=exportState, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
 
     call realizeWithAcceptedGeom(importState, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
 
     call realizeWithAcceptedGeom(exportState, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
 
     contains ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -527,27 +422,15 @@ module Mediator
 
       ! query info about the items in the state
       call ESMF_StateGet(state, nestedFlag=.true., itemCount=itemCount, rc=rc)
-      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-        line=__LINE__, &
-        file=__FILE__)) &
-        return  ! bail out
       allocate(itemNameList(itemCount), itemTypeList(itemCount))
       call ESMF_StateGet(state, nestedFlag=.true., &
         itemNameList=itemNameList, itemTypeList=itemTypeList, rc=rc)
-      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-        line=__LINE__, &
-        file=__FILE__)) &
-        return  ! bail out
 
       ! realize all the fields in the state (geoms have been transferred)
       do item=1, itemCount
         if (itemTypeList(item)==ESMF_STATEITEM_FIELD) then
           ! realize this field
           call NUOPC_Realize(state, fieldName=itemNameList(item), rc=rc)
-          if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-            line=__LINE__, &
-            file=__FILE__)) &
-            return  ! bail out
         endif
       enddo
 
