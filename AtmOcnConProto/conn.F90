@@ -1,24 +1,4 @@
-!==============================================================================
-! Earth System Modeling Framework
-! Copyright (c) 2002-2026, University Corporation for Atmospheric Research,
-! Massachusetts Institute of Technology, Geophysical Fluid Dynamics
-! Laboratory, University of Michigan, National Centers for Environmental
-! Prediction, Los Alamos National Laboratory, Argonne National Laboratory,
-! NASA Goddard Space Flight Center.
-! Licensed under the University of Illinois-NCSA License.
-!==============================================================================
-
 module CON
-
-  !-----------------------------------------------------------------------------
-  ! Connector Component.
-  !-----------------------------------------------------------------------------
-
-  ! The
-  ! example creates an FieldBundle that's a duplicate of dstFields inside the
-  ! connector, and precomputes two RouteHandles. The first is a Regrid, while
-  ! the second is simply an identity operation using FieldRedist() to show the
-  ! principle.
 
   use ESMF
   use NUOPC
@@ -26,112 +6,56 @@ module CON
     conSS      => SetServices
 
   implicit none
-
   private
-
   public SetServices
 
-  !-----------------------------------------------------------------------------
   contains
-  !-----------------------------------------------------------------------------
 
   subroutine SetServices(connector, rc)
     type(ESMF_CplComp)  :: connector
     integer, intent(out) :: rc
 
     rc = ESMF_SUCCESS
-
-    ! derive from NUOPC_Connector
     call NUOPC_CompDerive(connector, conSS, rc=rc)
 
-    ! specialize connector
     call NUOPC_CompSpecialize(connector, specLabel=label_ComputeRouteHandle, &
       specRoutine=ComputeRH, rc=rc)
-
     call NUOPC_CompSpecialize(connector, specLabel=label_ExecuteRouteHandle, &
       specRoutine=ExecuteRH, rc=rc)
-
     call NUOPC_CompSpecialize(connector, specLabel=label_ReleaseRouteHandle, &
       specRoutine=ReleaseRH, rc=rc)
-
   end subroutine
-
-  !-----------------------------------------------------------------------------
 
   subroutine ComputeRH(connector, rc)
     type(ESMF_CplComp)  :: connector
     integer, intent(out) :: rc
 
-    ! local variables
     type(ESMF_State)              :: state
     type(ESMF_FieldBundle)        :: dstFields, srcFields
-    type(ESMF_FieldBundle)        :: interDstFields
-    type(ESMF_Field), allocatable :: fields(:)
-    integer                       :: fieldCount, i
-    type(ESMF_Grid)               :: Grid
-    type(ESMF_TypeKind_Flag)      :: typekind
-    type(ESMF_Field)              :: field
-    type(ESMF_RouteHandle)        :: rh1, rh2
+    type(ESMF_RouteHandle)        :: rh
 
     rc = ESMF_SUCCESS
 
     call NUOPC_ConnectorGet(connector, srcFields=srcFields, &
       dstFields=dstFields, state=state, rc=rc)
 
-    
-
-    ! replicate dstFields FieldBundle in order to provide intermediate Fields
-    ! - query number of fields in the FieldBundle
-    call ESMF_FieldBundleGet(dstFields, fieldCount=fieldCount, rc=rc)
-
-    ! - pull out fields in list form
-    ! - !!!! MUST specify itemorderflag=ESMF_ITEMORDER_ADDORDER in order to
-    !   !!!! preserve the same order as the original FieldBundle, or else the
-    !   !!!! FieldBundle communication methods will incorrectly map from
-    !   !!!! src -> dst!
-    allocate(fields(fieldCount))
-    call ESMF_FieldBundleGet(dstFields, fieldList=fields, &
-      itemorderflag=ESMF_ITEMORDER_ADDORDER, rc=rc)
-    ! - create the intermediate FieldBundle
-    interDstFields = ESMF_FieldBundleCreate(name="interDstFields", rc=rc)
-    ! - access fields one-by-one, create intermediaries, and add to new bundle
-    do i=1, fieldCount
-      call ESMF_FieldGet(fields(i), grid=grid, typekind=typekind, rc=rc)
-      field = ESMF_FieldCreate(grid, typekind, rc=rc)
-      call ESMF_FieldBundleAdd(interDstFields, (/field/), rc=rc)
-    enddo
-    deallocate(fields)
-    ! add interDstFields to the state member
-    call ESMF_StateAdd(state, (/interDstFields/), rc=rc)
-
-    ! compute the first RouteHandle for srcFields->interDstFields (Regrid)
-    call ESMF_FieldBundleRegridStore(srcFields, interDstFields, &
-      !unmappedaction=ESMF_UNMAPPEDACTION_IGNORE, &
+    ! Compute a single RouteHandle that handles BOTH interpolation 
+    ! and redistribution across different PET sets/communicators.
+    call ESMF_FieldBundleRegridStore(srcFields, dstFields, &
       regridMethod=ESMF_REGRIDMETHOD_CONSERVE, &
-      routehandle=rh1, rc=rc)
-    call ESMF_RouteHandleSet(rh1, name="src2interDstRH", rc=rc)
-
-    ! compute the second RouteHandle for interDstFields->dstFields (Redist). This 
-    ! is necessary because interDstFields are on a different communicator than
-    ! dstFields
-    call ESMF_FieldBundleRedistStore(interDstFields, dstFields, &
-      routehandle=rh2, rc=rc)
-    call ESMF_RouteHandleSet(rh2, name="interDst2dstRH", rc=rc)
-    ! add rh1, rh2 to the state member
+      routehandle=rh, rc=rc)
     
-    call ESMF_StateAdd(state, (/rh1, rh2/), rc=rc)
+    call ESMF_RouteHandleSet(rh, name="src2dstRH", rc=rc)
 
+    ! Add the single combined handle to the state
+    call ESMF_StateAdd(state, (/rh/), rc=rc)
   end subroutine
-
-  !-----------------------------------------------------------------------------
 
   subroutine ExecuteRH(connector, rc)
     type(ESMF_CplComp)  :: connector
     integer, intent(out) :: rc
 
-    ! local variables
-    type(ESMF_FieldBundle)        :: interDstFields
-    type(ESMF_RouteHandle)        :: rh1, rh2
+    type(ESMF_RouteHandle)        :: rh
     type(ESMF_State)              :: state
     type(ESMF_FieldBundle)        :: dstFields, srcFields
     type(ESMF_Clock)              :: clock
@@ -142,60 +66,29 @@ module CON
     call NUOPC_ConnectorGet(connector, srcFields=srcFields, &
       dstFields=dstFields, state=state, driverClock=clock, rc=rc)
 
-    ! test the parent clock
-    call ESMF_ClockPrint(clock, options="currTime", &
-      preString="Testing parentClock from conn.F90 ExecuteRH(): ", &
-      unit=msgString, rc=rc)
-    call ESMF_LogWrite(msgString, ESMF_LOGMSG_INFO, rc=rc)
+    ! Retrieve the combined handle
+    call ESMF_StateGet(state, "src2dstRH", rh, rc=rc)
 
-    ! retrieve interDstFields FieldBundle from state member
-    call ESMF_StateGet(state, "interDstFields", interDstFields, rc=rc)
-    ! retrieve rh1 from state member
-    call ESMF_StateGet(state, "src2interDstRH", rh1, rc=rc)
-    ! retrieve rh2 from state member
-    call ESMF_StateGet(state, "interDst2dstRH", rh2, rc=rc)
-    ! apply rh1
-    call ESMF_FieldBundleRegrid(srcFields, interDstFields, &
-      routehandle=rh1, rc=rc)
-    ! apply rh2
-    call ESMF_FieldBundleRedist(interDstFields, dstFields, &
-      routehandle=rh2, rc=rc)
-
+    ! Single call: Regrid (math) and Redistribute (comm) across components
+    call ESMF_FieldBundleRegrid(srcFields, dstFields, &
+      routehandle=rh, rc=rc)
   end subroutine
-
-  !-----------------------------------------------------------------------------
 
   subroutine ReleaseRH(connector, rc)
     type(ESMF_CplComp)  :: connector
     integer, intent(out) :: rc
 
-    ! local variables
     type(ESMF_State)              :: state
-    type(ESMF_FieldBundle)        :: interDstFields
-    type(ESMF_RouteHandle)        :: rh1, rh2
+    type(ESMF_RouteHandle)        :: rh
 
     rc = ESMF_SUCCESS
 
     call NUOPC_ConnectorGet(connector, state=state, rc=rc)
 
-    ! retrieve interDstFields FieldBundle from state member
-    call ESMF_StateGet(state, "interDstFields", interDstFields, rc=rc)
-   ! retrieve rh1 from state member
-    call ESMF_StateGet(state, "src2interDstRH", rh1, rc=rc)
-    ! retrieve rh2 from state member
-    call ESMF_StateGet(state, "interDst2dstRH", rh2, rc=rc)
-    ! release rh1
-    call ESMF_FieldBundleRegridRelease(rh1, rc=rc)
-    ! release rh2
-    call ESMF_FieldBundleRegridRelease(rh2, rc=rc)
-
-    ! Could destroy intermediate Fields and interDstFields FieldBundle here,
-    ! but it is more convenient to let ESMF automatic garbage collection take
-    ! care of them.
-
+    ! Retrieve and release the single combined handle
+    call ESMF_StateGet(state, "src2dstRH", rh, rc=rc)
+    call ESMF_FieldBundleRegridRelease(rh, rc=rc)
   end subroutine
-
-  !-----------------------------------------------------------------------------
 
 end module
 
