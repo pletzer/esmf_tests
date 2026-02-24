@@ -58,9 +58,10 @@ test_distgrid.x: test_distgrid.o dist_mod.o
 
 # module dependencies:
 esmApp.o: esm.o 
-esm.o: atm.o ocn.o conn.o
+esm.o: atm.o ocn.o ice.o conn.o
 atm.o: vtk_mod.o
 ocn.o: vtk_mod.o
+ice.o: vtk_mod.o
 
 # -----------------------------------------------------------------------------
 # -----------------------------------------------------------------------------
@@ -78,12 +79,9 @@ info:
 	@cat $(ESMFMKFILE)
 	@echo ==================================================================
 
-edit:
-	nedit esmApp.F90 esm.F90 atm.F90 ocn.F90 conn.F90 &
-
 run: esmApp
 	rm PET*
-	$(ESMF_INTERNAL_MPIRUN) -np 4 ./esmApp
+	$(ESMF_INTERNAL_MPIRUN) -np 6 ./esmApp
 	cat PET0.ESMF_LogFile
 
 test: test_distgrid.x

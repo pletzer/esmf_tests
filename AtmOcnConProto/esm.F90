@@ -112,7 +112,7 @@ module ESM
     write(attrStr,"(I10)") verbosity
     call NUOPC_CompAttributeSet(child, name="Verbosity", value=attrStr, rc=rc)
 
-    ! SetServices for atm2ocn
+    ! SetServices for ATM -> OCN
     call NUOPC_DriverAddComp(driver, srcCompLabel="ATM", dstCompLabel="OCN", &
       compSetServicesRoutine=cplSS, comp=conn, rc=rc)
 
@@ -122,7 +122,7 @@ module ESM
     write(attrStr,"(I10)") verbosity
     call NUOPC_CompAttributeSet(conn, name="Verbosity", value=attrStr, rc=rc)
 
-    ! SetServices for ocn2atm
+    ! SetServices for OCN -> ATM
     call NUOPC_DriverAddComp(driver, srcCompLabel="OCN", dstCompLabel="ATM", &
       compSetServicesRoutine=cplSS, comp=conn, rc=rc)
 

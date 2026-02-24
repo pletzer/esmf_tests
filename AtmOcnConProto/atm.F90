@@ -105,8 +105,8 @@ module ATM
     pi = acos(-1._8)
 
     ! Define grid 
-    nx = 32
-    ny = 16
+    nx = 24
+    ny = 12
     xmin = 0.0_8
     xmax = 1.0_8
     ymin = 0.0_8
@@ -114,8 +114,8 @@ module ATM
 
     ! Create the grid with both CENTER and CORNER stagger locations
     grid = ESMF_GridCreateNoPeriDim( &
-          regDecomp=(/1, 2/), &
-          coordDep1=(/1, 2/), & ! 1st coord is 2D and depends on both Grid dim
+          regDecomp=(/1, 3/), &  ! assumes component is running on 3 processors
+          coordDep1=(/1, 2/), &  ! 1st coord is 2D and depends on both Grid dim
           coordDep2=(/1, 2/), &
           indexflag=ESMF_INDEX_GLOBAL, &
           maxIndex=(/nx, ny/), &
