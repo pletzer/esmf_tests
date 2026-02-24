@@ -147,8 +147,8 @@ module ICE
     call ESMF_GridGetCoordBounds(grid, coordDim=2, staggerLoc=ESMF_STAGGERLOC_CENTER, &
                                 exclusiveLBound=lbCenter, exclusiveUBound=ubCenter, rc=rc)
 
-    print*,'*** OCN corner bounds ', lbCorner, ubCorner
-    print*,'*** OCN centre bounds ', lbCenter, ubCenter
+    print*,'*** ICE corner bounds ', lbCorner, ubCorner
+    print*,'*** ICE centre bounds ', lbCenter, ubCenter
 
     !--------------------------------------------------------
     ! Then: get the actual coordinate arrays
@@ -323,7 +323,7 @@ module ICE
     ! stopTime of the internal Clock has been reached.
 
     call ESMF_ClockPrint(clock, options="currTime", &
-      preString="------>Advancing OCN from: ", unit=msgString, rc=rc)
+      preString="------>Advancing ICE from: ", unit=msgString, rc=rc)
 
     call ESMF_LogWrite(msgString, ESMF_LOGMSG_INFO, rc=rc)
 
@@ -345,7 +345,7 @@ module ICE
     call ESMF_VMGet(compVM, mpiCommunicator=comm, rc=rc)
 
     call MPI_Comm_rank(comm, pe, rc)
-    write(filename, '(A,I4.4,A,I4.4,A)') 'ocn_', pe, 'pe_', istep,'.vtk'
+    write(filename, '(A,I4.4,A,I4.4,A)') 'ice_', pe, 'pe_', istep,'.vtk'
     call write_vtk(field_pmsl, filename)
 
     chksum = 0
@@ -355,7 +355,7 @@ module ICE
         chksum = chksum + abs(dataPtr(i, j))
       enddo
     enddo
-    print*,'OCN step=', istep, ' pe=', pe, ' chksum pmsl = ', chksum
+    print*,'ICE step=', istep, ' pe=', pe, ' chksum pmsl = ', chksum
 
 
   end subroutine
