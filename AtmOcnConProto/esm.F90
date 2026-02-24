@@ -26,6 +26,8 @@ module ESM
 
   use ATM, only: atmSS => SetServices
   use OCN, only: ocnSS => SetServices
+  use ICE, only: iceSS => SetServices
+
 
   use CON, only: cplSS => SetServices
 
