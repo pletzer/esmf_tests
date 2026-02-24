@@ -94,10 +94,6 @@ module ESM
       comp=child, rc=rc)
 
     deallocate(petList)
-    verbosity = 0 ! reset
-    verbosity = ibset(verbosity,0)  ! log basic intro/extro and indentation
-    write(attrStr,"(I10)") verbosity
-    call NUOPC_CompAttributeSet(child, name="Verbosity", value=attrStr, rc=rc)
 
     ! SetServices for OCN with petList on second half of PETs
     allocate(petList(petCount/2))
@@ -109,30 +105,13 @@ module ESM
       comp=child, rc=rc)
     deallocate(petList)
 
-    verbosity = 0 ! reset
-    verbosity = ibset(verbosity,0)  ! log basic intro/extro and indentation
-    write(attrStr,"(I10)") verbosity
-    call NUOPC_CompAttributeSet(child, name="Verbosity", value=attrStr, rc=rc)
-
     ! SetServices for ATM -> OCN
     call NUOPC_DriverAddComp(driver, srcCompLabel="ATM", dstCompLabel="OCN", &
       compSetServicesRoutine=cplSS, comp=conn, rc=rc)
 
-    verbosity = 0 ! reset
-    verbosity = ibset(verbosity,0)  ! log basic intro/extro and indentation
-    verbosity = ibset(verbosity,12) ! log CplList loop
-    write(attrStr,"(I10)") verbosity
-    call NUOPC_CompAttributeSet(conn, name="Verbosity", value=attrStr, rc=rc)
-
     ! SetServices for OCN -> ATM
     call NUOPC_DriverAddComp(driver, srcCompLabel="OCN", dstCompLabel="ATM", &
       compSetServicesRoutine=cplSS, comp=conn, rc=rc)
-
-    verbosity = 0 ! reset
-    verbosity = ibset(verbosity,0)  ! log basic intro/extro and indentation
-    verbosity = ibset(verbosity,12) ! log CplList loop
-    write(attrStr,"(I10)") verbosity
-    call NUOPC_CompAttributeSet(conn, name="Verbosity", value=attrStr, rc=rc)
 
     ! set the driver clock
     call ESMF_TimeIntervalSet(timeStep, m=15, rc=rc) ! 15 minute steps
