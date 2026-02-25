@@ -86,7 +86,7 @@ module ESM
 
     ! SetServices for ATM with petList on first half of PETs
     allocate(petList(petCount/2))
-    do i=1, petCount/2
+    do i=1, size(petList)
       petList(i) = i-1 ! PET labeling goes from 0 to petCount-1
     enddo
     call NUOPC_DriverAddComp(driver, "ATM", atmSS, &
@@ -97,7 +97,7 @@ module ESM
 
     ! SetServices for OCN with petList on second half of PETs
     allocate(petList(petCount/2))
-    do i=1, petCount/2
+    do i=1, size(petList)
       petList(i) = petCount/2 + i-1 ! PET labeling goes from 0 to petCount-1
     enddo
     call NUOPC_DriverAddComp(driver, "OCN", ocnSS, &
