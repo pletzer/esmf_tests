@@ -75,7 +75,8 @@ module ESM
     type(ESMF_GridComp)           :: child
     type(ESMF_CplComp)            :: conn
     integer                       :: petCount, i
-    integer, allocatable          :: petList(:)
+    integer :: atmPetList(3) = [0, 1, 2]
+    integer :: ocnPetList(3) = [3, 4, 5]
     integer                       :: verbosity
     character(len=10)             :: attrStr
 
@@ -84,26 +85,15 @@ module ESM
    ! get the petCount
     call ESMF_GridCompGet(driver, petCount=petCount, rc=rc)
 
-    ! SetServices for ATM with petList on first half of PETs
-    allocate(petList(petCount/2))
-    do i=1, size(petList)
-      petList(i) = i-1 ! PET labeling goes from 0 to petCount-1
-    enddo
+    ! SetServices for ATM with petList on first chunk of PETs
     call NUOPC_DriverAddComp(driver, "ATM", atmSS, &
-      petList=petList, &
+      petList=atmPetList, &
       comp=child, rc=rc)
 
-    deallocate(petList)
-
-    ! SetServices for OCN with petList on second half of PETs
-    allocate(petList(petCount/2))
-    do i=1, size(petList)
-      petList(i) = petCount/2 + i-1 ! PET labeling goes from 0 to petCount-1
-    enddo
+    ! SetServices for OCN with petList on second chunk of PETs
     call NUOPC_DriverAddComp(driver, "OCN", ocnSS, &
-      petList=petList, &
+      petList=ocnPetList, &
       comp=child, rc=rc)
-    deallocate(petList)
 
     ! SetServices for ATM -> OCN
     call NUOPC_DriverAddComp(driver, srcCompLabel="ATM", dstCompLabel="OCN", &
