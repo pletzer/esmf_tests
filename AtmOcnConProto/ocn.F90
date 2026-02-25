@@ -118,7 +118,7 @@ module OCN
 
     ! Create the grid with both CENTER and CORNER stagger locations
     grid = ESMF_GridCreateNoPeriDim( &
-          regDecomp=(/1, 3/), & ! assumes component is running on 3 processors
+          regDecomp=(/1, 2/), & ! assumes component is running on 3 processors
           coordDep1=(/1, 2/), & ! 1st coord is 2D and depends on both Grid dim
           coordDep2=(/1, 2/), &
           indexflag=ESMF_INDEX_GLOBAL, &

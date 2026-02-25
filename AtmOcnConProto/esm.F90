@@ -75,8 +75,9 @@ module ESM
     type(ESMF_GridComp)           :: child
     type(ESMF_CplComp)            :: conn
     integer                       :: petCount, i
-    integer :: atmPetList(3) = [0, 1, 2]
-    integer :: ocnPetList(3) = [3, 4, 5]
+    integer :: atmPetList(2) = [0, 1]
+    integer :: ocnPetList(2) = [2, 3]
+    integer :: icePetList(2) = [4, 5]
     integer                       :: verbosity
     character(len=10)             :: attrStr
 
