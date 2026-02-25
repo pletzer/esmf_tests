@@ -86,15 +86,21 @@ module ESM
    ! get the petCount
     call ESMF_GridCompGet(driver, petCount=petCount, rc=rc)
 
-    ! SetServices for ATM with petList on first chunk of PETs
+    ! ATM
     call NUOPC_DriverAddComp(driver, "ATM", atmSS, &
       petList=atmPetList, &
       comp=child, rc=rc)
 
-    ! SetServices for OCN with petList on second chunk of PETs
+    ! OCN
     call NUOPC_DriverAddComp(driver, "OCN", ocnSS, &
       petList=ocnPetList, &
       comp=child, rc=rc)
+
+    ! ! ICE
+    ! call NUOPC_DriverAddComp(driver, "ICE", iceSS, &
+    !   petList=icePetList, &
+    !   comp=child, rc=rc)
+    
 
     ! SetServices for ATM -> OCN
     call NUOPC_DriverAddComp(driver, srcCompLabel="ATM", dstCompLabel="OCN", &
