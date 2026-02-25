@@ -40,19 +40,28 @@ module ICE
 
     ! derive from NUOPC_Model
     call NUOPC_CompDerive(model, modelSS, rc=rc)
+    if (rc /= ESMF_SUCCESS) print*,'rc=', rc, ' at line ', __LINE__, ' in file ', __FILE__
 
     ! specialize model
     call NUOPC_CompSpecialize(model, specLabel=label_Advertise, &
       specRoutine=Advertise, rc=rc)
+    if (rc /= ESMF_SUCCESS) print*,'rc=', rc, ' at line ', __LINE__, ' in file ', __FILE__
+
 
     call NUOPC_CompSpecialize(model, specLabel=label_RealizeProvided, &
       specRoutine=Realize, rc=rc)
+    if (rc /= ESMF_SUCCESS) print*,'rc=', rc, ' at line ', __LINE__, ' in file ', __FILE__
+
 
     call NUOPC_CompSpecialize(model, specLabel=label_SetClock, &
       specRoutine=SetClock, rc=rc)
+    if (rc /= ESMF_SUCCESS) print*,'rc=', rc, ' at line ', __LINE__, ' in file ', __FILE__
+
 
     call NUOPC_CompSpecialize(model, specLabel=label_Advance, &
       specRoutine=Advance, rc=rc)
+    if (rc /= ESMF_SUCCESS) print*,'rc=', rc, ' at line ', __LINE__, ' in file ', __FILE__
+
 
   end subroutine
 
@@ -224,7 +233,7 @@ module ICE
       enddo
     enddo
   
-    call NUOPC_Realize(exportState, field=field_sst, rc=rc)
+    ! call NUOPC_Realize(exportState, field=field_sst, rc=rc)
 
   end subroutine
 

@@ -96,10 +96,10 @@ module ESM
       petList=ocnPetList, &
       comp=child, rc=rc)
 
-    ! ! ICE
-    ! call NUOPC_DriverAddComp(driver, "ICE", iceSS, &
-    !   petList=icePetList, &
-    !   comp=child, rc=rc)
+    ! ICE
+    call NUOPC_DriverAddComp(driver, "ICE", iceSS, &
+      petList=icePetList, &
+      comp=child, rc=rc)
     
 
     ! SetServices for ATM -> OCN
@@ -108,6 +108,10 @@ module ESM
 
     ! SetServices for OCN -> ATM
     call NUOPC_DriverAddComp(driver, srcCompLabel="OCN", dstCompLabel="ATM", &
+      compSetServicesRoutine=cplSS, comp=conn, rc=rc)
+
+    ! SetServices for ATM -> ICE
+    call NUOPC_DriverAddComp(driver, srcCompLabel="ATM", dstCompLabel="ICE", &
       compSetServicesRoutine=cplSS, comp=conn, rc=rc)
 
     ! set the driver clock
