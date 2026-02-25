@@ -114,6 +114,10 @@ module ESM
     call NUOPC_DriverAddComp(driver, srcCompLabel="ATM", dstCompLabel="ICE", &
       compSetServicesRoutine=cplSS, comp=conn, rc=rc)
 
+    ! SetServices for ICE -> ATM
+    call NUOPC_DriverAddComp(driver, srcCompLabel="ICE", dstCompLabel="ATM", &
+      compSetServicesRoutine=cplSS, comp=conn, rc=rc)
+
     ! set the driver clock
     call ESMF_TimeIntervalSet(timeStep, m=15, rc=rc) ! 15 minute steps
 

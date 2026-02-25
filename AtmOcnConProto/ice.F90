@@ -92,9 +92,10 @@ module ICE
     call NUOPC_Advertise(importState, &
       StandardName="surface_net_downward_shortwave_flux", name="rsns", rc=rc)
 
-    ! exportable field: sea_surface_temperature
+    ! exportable field: albedo
     call NUOPC_Advertise(exportState, &
-      StandardName="sea_surface_temperature", name="sst", rc=rc)
+      StandardName="ice_albedo", name="ice_albedo", rc=rc)
+
 
   end subroutine
 
@@ -107,13 +108,13 @@ module ICE
     ! local variables
     type(ESMF_State)        :: importState, exportState
     type(ESMF_TimeInterval) :: stabilityTimeStep
-    type(ESMF_Field)        :: field_sst, field_pmsl, field_rsns
+    type(ESMF_Field)        :: field_albedo, field_pmsl, field_rsns
 
     integer :: nx, ny, i, j
     integer :: lbCorner(2), ubCorner(2), lbCenter(2), ubCenter(2)
     real(ESMF_KIND_R8), pointer :: xCornerPtr(:,:), yCornerPtr(:,:)
     real(ESMF_KIND_R8), pointer :: xCenterPtr(:,:), yCenterPtr(:,:)
-    real(ESMF_KIND_R8), pointer :: sstPtr(:,:)
+    real(ESMF_KIND_R8), pointer :: albedoPtr(:,:)
     real(ESMF_KIND_R8) :: x, y, pi
     type(ESMF_Grid) :: grid
 
@@ -217,23 +218,24 @@ module ICE
 
     call NUOPC_Realize(importState, field=field_rsns, rc=rc)
 
-    ! exportable field: sea_surface_temperature
-    field_sst = ESMF_FieldCreate(name="sst", grid=grid, &
+    ! exportable field
+    field_albedo = ESMF_FieldCreate(name="ice_albedo", grid=grid, &
       staggerloc=ESMF_STAGGERLOC_CENTER, typekind=ESMF_TYPEKIND_R8, rc=rc)
 
     ! initialize
-    call ESMF_FieldGet(field=field_sst, farrayPtr=sstPtr, rc=rc)
+    call ESMF_FieldGet(field=field_albedo, farrayPtr=albedoPtr, rc=rc)
 
-    ! set the SST 
+    ! set the albedo
     do j = lbCenter(2), ubCenter(2)
       do i = lbCenter(1), ubCenter(1)
         x = xCenterPtr(i, j)
         y = yCenterPtr(i, j)
-        sstPtr(i, j) = sin(pi*x/(xmax - xmin)) * cos((pi*y - 1.2_8)/(ymax - ymin))
+        ! between 0 and 1
+        albedoPtr(i, j) = 0.5_8 + 0.5_8 * sin(pi*x/(xmax - xmin)) * cos((pi*y - 1.2_8)/(ymax - ymin))
       enddo
     enddo
   
-    ! call NUOPC_Realize(exportState, field=field_sst, rc=rc)
+    call NUOPC_Realize(exportState, field=field_albedo, rc=rc)
 
   end subroutine
 
@@ -275,9 +277,9 @@ module ICE
     type(ESMF_TimeInterval)     :: timeStep
     character(len=160)          :: msgString
     integer :: istep = 0
-    type(ESMF_Field) :: field_sst
+    type(ESMF_Field) :: field_albedo
     type(ESMF_Grid) :: grid
-    real(8), pointer :: sstPtr(:, :), xCenterPtr(:, :), yCenterPtr(:, :)
+    real(8), pointer :: albedoPtr(:, :), xCenterPtr(:, :), yCenterPtr(:, :)
     integer :: i, j, lbCenter(2), ubCenter(2)
     real(8) :: pi, x, y
     type(ESMF_VM) :: compVM
@@ -296,10 +298,10 @@ module ICE
     call NUOPC_ModelGet(model, modelClock=clock, importState=importState, &
       exportState=exportState, rc=rc)
 
-    ! update the export SST
-    call ESMF_StateGet(exportState, itemName='sst', field=field_sst, rc=rc)
-    call ESMF_FieldGet(field_sst, farrayPtr=sstPtr, rc=rc)
-    call ESMF_FieldGet(field_sst, grid=grid, rc=rc)
+    ! update the export fields
+    call ESMF_StateGet(exportState, itemName='ice_albedo', field=field_albedo, rc=rc)
+    call ESMF_FieldGet(field_albedo, farrayPtr=albedoPtr, rc=rc)
+    call ESMF_FieldGet(field_albedo, grid=grid, rc=rc)
 
     ! Fill in center bounds
     call ESMF_GridGetCoord(grid, coordDim=1, staggerLoc=ESMF_STAGGERLOC_CENTER, &
@@ -311,13 +313,13 @@ module ICE
     call ESMF_GridGetCoordBounds(grid, coordDim=2, staggerLoc=ESMF_STAGGERLOC_CENTER, &
                                 exclusiveLBound=lbCenter, exclusiveUBound=ubCenter, rc=rc)
 
-    ! set the SST 
+    ! set the fields
     do j = lbCenter(2), ubCenter(2)
       do i = lbCenter(1), ubCenter(1)
         x = xCenterPtr(i, j)
         y = yCenterPtr(i, j)
         ! move the field in time
-        sstPtr(i, j) = sin(pi*(x - istep*0.05_8)/(xmax - xmin)) * cos((pi*y - 1.2_8 - istep*0.07_8)/(ymax - ymin))
+        albedoPtr(i, j) = 0.5_8 + 0.5_8 *sin(pi*(x - istep*0.05_8)/(xmax - xmin)) * cos((pi*y - 1.2_8 - istep*0.07_8)/(ymax - ymin))
       enddo
     enddo
 

@@ -71,6 +71,9 @@ module ATM
     call NUOPC_Advertise(importState, &
       StandardName="sea_surface_temperature", name="sst", rc=rc)
 
+    call NUOPC_Advertise(importState, &
+      StandardName="ice_albedo", name="ice_albedo", rc=rc)
+
     ! exportable field: air_pressure_at_sea_level
     call NUOPC_Advertise(exportState, &
       StandardName="air_pressure_at_sea_level", name="pmsl", rc=rc)
@@ -90,7 +93,7 @@ module ATM
     ! local variables
     type(ESMF_State)        :: importState, exportState
     type(ESMF_TimeInterval) :: stabilityTimeStep
-    type(ESMF_Field)        :: field_sst, field_pmsl, field_rsns
+    type(ESMF_Field)        :: field_sst, field_pmsl, field_rsns, field_albedo
 
     integer :: nx, ny, i, j
     integer :: lbCorner(2), ubCorner(2), lbCenter(2), ubCenter(2)
@@ -219,6 +222,13 @@ module ATM
       staggerloc=ESMF_STAGGERLOC_CENTER, typekind=ESMF_TYPEKIND_R8, rc=rc)
  
     call NUOPC_Realize(importState, field=field_sst, rc=rc)
+
+    ! importable field: ice albedo
+    field_albedo = ESMF_FieldCreate(name="ice_albedo", grid=grid, &
+      staggerloc=ESMF_STAGGERLOC_CENTER, typekind=ESMF_TYPEKIND_R8, rc=rc)
+ 
+    call NUOPC_Realize(importState, field=field_albedo, rc=rc)
+
 
   end subroutine
   !-----------------------------------------------------------------------------

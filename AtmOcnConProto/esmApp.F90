@@ -15,6 +15,7 @@ program esmApp
   !-----------------------------------------------------------------------------
 
   use ESMF
+  use NUOPC
   use ESM, only: esmSS => SetServices
 
   implicit none
@@ -34,6 +35,9 @@ program esmApp
     line=__LINE__, &
     file=__FILE__)) &
     call ESMF_Finalize(endflag=ESMF_END_ABORT)
+
+  ! add some standard name entries...
+  call NUOPC_FieldDictionaryAddEntry(standardname="ice_albedo", canonicalunits="1", rc=rc) 
 
   ! Create the earth system Component
   esmComp = ESMF_GridCompCreate(name="esm", rc=rc)
